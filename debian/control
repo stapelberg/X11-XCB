@@ -1,0 +1,14 @@
+Source: libx11-xcb-perl
+Section: perl
+Priority: optional
+Build-Depends: debhelper (>= 7)
+Build-Depends-Indep: perl (>= 5.6.0-12), perl-modules, libmodule-install-perl, libmoose-perl
+Maintainer: Michael Stapelberg <michael@stapelberg.de>
+Standards-Version: 3.8.1
+Homepage: http://www.featurequest.org/FRQ$TagFS
+
+Package: libx11-xcb-perl
+Architecture: all
+Depends: ${perl:Depends}, ${misc:Depends}
+Description: XCB bindings for perl
+ TODO: Description

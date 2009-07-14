@@ -1,0 +1,8 @@
+Changes
+Makefile.PL
+MANIFEST
+ppport.h
+README
+XCB.xs
+t/X11-XCB.t
+lib/X11/XCB.pm

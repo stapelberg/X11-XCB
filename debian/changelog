@@ -1,0 +1,5 @@
+libx11-xcb-perl (1.0-1) unstable; urgency=low
+
+  * Initial Release.
+
+ -- Michael Stapelberg <michael@stapelberg.de>  Thu, 9 Jul 2009 16:45:51 +0200
