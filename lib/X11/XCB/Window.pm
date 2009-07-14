@@ -3,7 +3,7 @@ package X11::XCB::Window;
 use Moose;
 use X11::XCB::Rect;
 use X11::XCB::Connection;
-use Mytest qw(:all);
+use X11::XCB qw(:all);
 use Data::Dumper;
 
 has 'class' => (is => 'ro', isa => 'Str', required => 1);

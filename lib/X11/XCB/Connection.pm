@@ -3,7 +3,7 @@ package X11::XCB::Connection;
 # passes all methods to the underlying XCBConnection.
 
 use MooseX::Singleton;
-use Mytest qw(:all);
+use X11::XCB qw(:all);
 
 has 'display' => (is => 'rw', isa => 'Str');
 has 'conn' => (is => 'rw', isa => 'XCBConnectionPtr', handles => qr/.*/);
