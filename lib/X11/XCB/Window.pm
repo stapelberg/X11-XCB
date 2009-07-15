@@ -40,8 +40,6 @@ sub rect {
 
 	my $conn = $self->_conn;
 
-	print "Building rect!\n";
-
 	# Get the relative geometry
 	my $cookie = $conn->get_geometry($self->id);
 	my $relative_geometry = $conn->get_geometry_reply($cookie->{sequence});
@@ -111,6 +109,7 @@ sub map {
 
 	$self->_conn->map_window($self->id);
 	$self->_conn->flush;
+	$self->_mapped(1);
 }
 
 sub _update_name {

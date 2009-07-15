@@ -1,16 +1,23 @@
 use 5.010000;
 use ExtUtils::MakeMaker;
+use FindBin;
 
 use IO::All;
 
-my @enums = io('enums.list')->slurp;
+my $bin = $FindBin::Bin;
+if (not -e "$bin/enums.list") {
+	$bin .= "/X11-XCB-XS";
+}
+print "Loading $bin/enums.list...\n";
+my @enums = io("$bin/enums.list")->slurp;
 my $enums = join ' ', @enums;
-my @libfile = io('lib/X11/XCB.pm.in')->slurp;
+print "Replacing in $bin/lib/X11/XCB.pm.in\n";
+my @libfile = io("$bin/lib/X11/XCB.pm.in")->slurp;
 for my $line (@libfile) {
         $line =~ s/ENUMS_REPLACE_ME/qw($enums)/g;
 }
 
-(join '', @libfile) > io('lib/X11/XCB.pm');
+(join '', @libfile) > io("$bin/lib/X11/XCB.pm");
 
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
 # the contents of the Makefile that is written.

@@ -14,7 +14,7 @@ sub connect {
 
 	# TODO: do we need this one?
 	my $screens;
-	my $conn = Mytest->new($display, $screens);
+	my $conn = X11::XCB->new($display, $screens);
 
 	X11::XCB::Connection->display($display);
 	X11::XCB::Connection->conn($conn);
