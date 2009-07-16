@@ -45,23 +45,23 @@ sub rect {
     my $cookie = $conn->get_geometry($self->id);
     my $relative_geometry = $conn->get_geometry_reply($cookie->{sequence});
 
-    my $last_window_id = $self->id;
+    my $last_id = $self->id;
 
     while (1) {
-        $cookie = $conn->query_tree($last_window_id);
+        $cookie = $conn->query_tree($last_id);
         my $reply = $conn->query_tree_reply($cookie->{sequence});
 
         # If this is the root window, we stop here
         last if ($reply->{root} == $reply->{parent});
 
-        $last_window_id = $reply->{parent};
+        $last_id = $reply->{parent};
     }
 
     # If this window is a direct child of the root window, the relative
     # geometry is equal to the absolute geometry
-    return $relative_geometry if ($last_window_id == $self->id);
+    return X11::XCB::Rect->new($relative_geometry) if ($last_id == $self->id);
 
-    $cookie = $conn->get_geometry($last_window_id);
+    $cookie = $conn->get_geometry($last_id);
     my $absolute_geometry = $conn->get_geometry_reply($cookie->{sequence});
 
     return X11::XCB::Rect->new(
