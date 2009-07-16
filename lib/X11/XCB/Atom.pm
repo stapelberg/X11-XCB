@@ -11,14 +11,23 @@ has '_conn' => (is => 'ro', default => sub { X11::XCB::Connection->instance });
 sub _build_id {
 	my $self = shift;
 
-	return $self->_conn->intern_atom_reply($self->_sequence)->{atom};
+	my $id = $self->_conn->intern_atom_reply($self->_sequence)->{atom};
+
+	# None = 0 means the atom does not exist
+	die "No such atom" if ($id == 0);
+
+	return $id;
 }
 
 sub _request {
 	my $self = shift;
 
 	# Place the request directly after the name is set, we get the response later
-	my $request = $self->_conn->intern_atom(0, length($self->name), $self->name);
+	my $request = $self->_conn->intern_atom(
+			1, # do not create the atom if it does not exist
+			length($self->name),
+			$self->name
+	);
 
 	# Save the sequence to identify the response
 	$self->_sequence($request->{sequence});
