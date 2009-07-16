@@ -3,6 +3,7 @@ package X11::XCB::Window;
 use Moose;
 use X11::XCB::Rect;
 use X11::XCB::Connection;
+use X11::XCB::Atom;
 use X11::XCB qw(:all);
 use Data::Dumper;
 
@@ -135,25 +136,56 @@ sub _update_name {
 
 sub _update_fullscreen {
 	my $self = shift;
+	my $conn = $self->_conn;
 	my $atomname = X11::XCB::Atom->new(name => '_NET_WM_STATE');
-	my $atomtype = X11::XCB::Atom->new(name => 'ATOM');
-	my $atom;
-	if ($self->fullscreen) {
-		$atom = X11::XCB::Atom->new(name => '_NET_WM_STATE_FULLSCREEN');
+
+	# If we’re already mapped, we have to send a client message to the root window
+	# containing our request to change the _NET_WM_STATE atom.
+	#
+	# (See EWMH → Application window properties)
+	if ($self->_mapped) {
+		my %event = (
+				response_type => CLIENT_MESSAGE,
+				format => 32,	# 32-bit values
+				sequence => 0, 	# filled in by xcb
+				window => $self->id,
+				type => $atomname->id,
+			    );
+
+		my $packed = pack('CCSLL(LLLL)',
+				$event{response_type},
+				$event{format},
+				$event{sequence},
+				$event{window},
+				$event{type},
+				_NET_WM_STATE_TOGGLE,
+				X11::XCB::Atom->new(name => '_NET_WM_STATE_FULLSCREEN')->id,
+				0,
+				1, # normal application
+		);
+
+		$conn->send_event(0, $conn->get_root_window(), EVENT_MASK_SUBSTRUCTURE_REDIRECT, $packed);
 	} else {
-		$atom = X11::XCB::Atom->new(name => '_NET_WM_STATE_NORMAL');
+		my $atomtype = X11::XCB::Atom->new(name => 'ATOM');
+		my $atom;
+		if ($self->fullscreen) {
+			$atom = X11::XCB::Atom->new(name => '_NET_WM_STATE_FULLSCREEN');
+		} else {
+			$atom = X11::XCB::Atom->new(name => '_NET_WM_STATE_NORMAL');
+		}
+
+		$conn->change_property(
+				PROP_MODE_REPLACE,
+				$self->id,
+				$atomname->id,
+				$atomtype->id,
+				32, 		# 32 bit integer
+				1,
+				pack('L', $atom->id)
+		);
 	}
 
-	$self->_conn->change_property(
-			PROP_MODE_REPLACE,
-			$self->id,
-			$atomname->id,
-			$atomtype->id,
-			32, 		# 32 bit integer
-			1,
-			pack('I', $atom->id)
-	);
-	$self->_conn->flush;
+	$conn->flush;
 }
 
 
