@@ -9,15 +9,16 @@ has 'display' => (is => 'rw', isa => 'Str');
 has 'conn' => (is => 'rw', isa => 'XCBConnectionPtr', handles => qr/.*/);
 
 sub connect {
-	my $class = shift;
-	my $display = shift;
+    my $class = shift;
+    my $display = shift;
 
-	# TODO: do we need this one?
-	my $screens;
-	my $conn = X11::XCB->new($display, $screens);
+    # TODO: do we need this one?
+    my $screens;
+    my $conn = X11::XCB->new($display, $screens);
 
-	X11::XCB::Connection->display($display);
-	X11::XCB::Connection->conn($conn);
+    X11::XCB::Connection->display($display);
+    X11::XCB::Connection->conn($conn);
 }
 
 1
+# vim:ts=4:sw=4:expandtab
