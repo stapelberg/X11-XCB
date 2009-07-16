@@ -522,14 +522,24 @@ sub do_enums($)
         }
     }
 
-    ## Events
-    #print OUT "\n    lua_newtable(L);\n";
-    #foreach my $event (@{$xcb->{'event'}}) {
-    #    my $name = $event->{'name'};
-    #    my $number = $event->{'number'};
-    #    print OUT "    lua_pushinteger(L, $number);\n";
-    #    print OUT "    lua_setfield(L, -2, \"$name\");\n";
-    #}
+    # Events
+    foreach my $event (@{$xcb->{'event'}}) {
+        my $number = $event->{'number'};
+        my $name = uc(mangle($event->{'name'}, 1));
+        print OUT "    newCONSTSUB(stash, \"$name\", newSViv(XCB_$name));\n";
+        print OUTENUMS "$name\n";
+    }
+
+    # Our own additions: EWMH constants
+    print OUT "    newCONSTSUB(stash, \"_NET_WM_STATE_ADD\", newSViv(1));\n";
+    print OUTENUMS "_NET_WM_STATE_ADD\n";
+
+    print OUT "    newCONSTSUB(stash, \"_NET_WM_STATE_REMOVE\", newSViv(0));\n";
+    print OUTENUMS "_NET_WM_STATE_REMOVE\n";
+
+    print OUT "    newCONSTSUB(stash, \"_NET_WM_STATE_TOGGLE\", newSViv(2));\n";
+    print OUTENUMS "_NET_WM_STATE_TOGGLE\n";
+
     #
     #foreach my $event (@{$xcb->{'eventcopy'}}) {
     #    my $name = $event->{'name'};
