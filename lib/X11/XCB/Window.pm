@@ -130,6 +130,8 @@ sub create {
     );
 
     $self->_created(1);
+
+    $self->_update_type if (defined($self->type));
 }
 
 sub map {
