@@ -68,42 +68,42 @@ my %luachecktype = (
 sub mangle($;$)
 {
     my %simple = (
-	CHAR2B => 1,
-	INT64 => 1,
-	FLOAT32 => 1,
-	FLOAT64 => 1,
-	BOOL32 => 1,
-	STRING8 => 1,
-	Family_DECnet => 1,
+    CHAR2B => 1,
+    INT64 => 1,
+    FLOAT32 => 1,
+    FLOAT64 => 1,
+    BOOL32 => 1,
+    STRING8 => 1,
+    Family_DECnet => 1,
     DECnet => 1
     );
     my $name = shift;
     my $clean = shift;
     my $mangled = '';
-    
+
     $mangled = 'xcb_' unless ($clean);
-    
+
     if ($simple{$name}) {
-	$mangled .= lc($name);
+    $mangled .= lc($name);
     } else {
-	while (length ($name)) {
-	    $name =~ /^(.)(.*)$/;
-	    my $char = $1;
-	    my $next = $2;
-	
-	    $mangled .= lc($char);
-	    
-	    if (
-		$name =~ /^[[:lower:]][[:upper:]]/ ||
-		$name =~ /^\d[[:alpha:]]/ ||
-		$name =~ /^[[:alpha:]]\d/ ||
-		$name =~ /^[[:upper:]][[:upper:]][[:lower:]]/)
-	    {
-		$mangled .= '_';
-	    }
-	    
-	    $name = $next;
-	}
+    while (length ($name)) {
+        $name =~ /^(.)(.*)$/;
+        my $char = $1;
+        my $next = $2;
+
+        $mangled .= lc($char);
+
+        if (
+        $name =~ /^[[:lower:]][[:upper:]]/ ||
+        $name =~ /^\d[[:alpha:]]/ ||
+        $name =~ /^[[:alpha:]]\d/ ||
+        $name =~ /^[[:upper:]][[:upper:]][[:lower:]]/)
+        {
+        $mangled .= '_';
+        }
+
+        $name = $next;
+    }
     }
     return $mangled;
 }
@@ -111,10 +111,10 @@ sub mangle($;$)
 sub cname($)
 {
     my %bad = (
-	new => 1,
-	delete => 1,
-	class => 1,
-	operator => 1 );
+    new => 1,
+    delete => 1,
+    class => 1,
+    operator => 1 );
     my $name = shift;
     return "_$name" if ($bad{$name});
     return $name;
@@ -129,19 +129,19 @@ sub do_push($$;$)
     my $base;
     
     if (defined($name)) {
-	$base = "x->".cname($name);
+    $base = "x->".cname($name);
     } else {
-	$base = "i.data";
+    $base = "i.data";
     }
     
     if ($luatype{$type}) {
-	# elemental type
-	$base = '*'.$base if (!defined($name));
-	print OUT $indent."lua_push".$luatype{$type}."(L, $base);\n";
+    # elemental type
+    $base = '*'.$base if (!defined($name));
+    print OUT $indent."lua_push".$luatype{$type}."(L, $base);\n";
     } else {
-	# complex type
-	$base = '&'.$base if (defined($name));
-	print OUT $indent."push_$type(L, $base);\n";
+    # complex type
+    $base = '&'.$base if (defined($name));
+    print OUT $indent."push_$type(L, $base);\n";
     }
 }
 
@@ -149,84 +149,84 @@ sub do_structs($)
 {
     my $xcb = shift;
     foreach my $struct (@{$xcb->{'struct'}}) {
-	my $name = $struct->{'name'};
-	my $xcbname = mangle($name).'_t';
-	my $perlname = $xcbname;
-	$perlname =~ s/^xcb_([a-z])/XCB\u$1/g;
-	$perlname =~ s/_t$//g;
-	print OUTTD " typedef $xcbname $perlname;\n";
-	print OUTTM "$perlname * T_PTROBJ\n";
+    my $name = $struct->{'name'};
+    my $xcbname = mangle($name).'_t';
+    my $perlname = $xcbname;
+    $perlname =~ s/^xcb_([a-z])/XCB\u$1/g;
+    $perlname =~ s/_t$//g;
+    print OUTTD " typedef $xcbname $perlname;\n";
+    print OUTTM "$perlname * T_PTROBJ\n";
 
-	print OUT "MODULE = X11::XCB PACKAGE = $perlname\n";
-	print OUT "$perlname *\nnew(self,";
-	my @f;
-	foreach my $field (@{$struct->{'field'}}) {
-	    push @f, $field->{'name'}; 
-	}
-	print OUT (join ',', @f);
-	print OUT ")\n    char *self\n";
-#	foreach my $field (@{$struct->{'field'}}) {
-#	    print OUT "    $field->{'name'}\n";
-#	}
-	foreach my $var (@{$struct->{'field'}}) {
-	    print OUT "    ".get_vartype($var->{'type'})." ";
-	    print OUT $var->{'name'}."\n";
-	}
+    print OUT "MODULE = X11::XCB PACKAGE = $perlname\n";
+    print OUT "$perlname *\nnew(self,";
+    my @f;
+    foreach my $field (@{$struct->{'field'}}) {
+        push @f, $field->{'name'};
+    }
+    print OUT (join ',', @f);
+    print OUT ")\n    char *self\n";
+#   foreach my $field (@{$struct->{'field'}}) {
+#       print OUT "    $field->{'name'}\n";
+#   }
+    foreach my $var (@{$struct->{'field'}}) {
+        print OUT "    ".get_vartype($var->{'type'})." ";
+        print OUT $var->{'name'}."\n";
+    }
 
-	print OUT "  PREINIT:\n    $perlname *buf;\n";
-	print OUT "  CODE:\n    New(0, buf, 1, $perlname);\n";
-	foreach my $var (@{$struct->{'field'}}) {
-	    print OUT "    buf->" . cname($var->{name}) . " = " . ($var->{name}) . ";\n";
-	}
-	print OUT "    RETVAL = buf;\n  OUTPUT:\n    RETVAL\n\n";
-
-
+    print OUT "  PREINIT:\n    $perlname *buf;\n";
+    print OUT "  CODE:\n    New(0, buf, 1, $perlname);\n";
+    foreach my $var (@{$struct->{'field'}}) {
+        print OUT "    buf->" . cname($var->{name}) . " = " . ($var->{name}) . ";\n";
+    }
+    print OUT "    RETVAL = buf;\n  OUTPUT:\n    RETVAL\n\n";
 
 
-	my $dogetter = 1;
-	
-	my %nostatic = ( # These structs are used from the base protocol
-	    xcb_setup_t => 1,
-	);
-	
-	if ($struct->{'list'}) {
-	    $dogetter = 0;  # If it has a list, the get half shouldn't (can't?) be needed.
-#	    foreach my $list (@{$struct->{'list'}}) {
-#		do_push_list(1, $name, $list->{'type'}, $list->{'name'}, $list->{'value'});
-#	    }
-	}
-	#print OUT "}\n\n";
 
-	if ($dogetter) {
-		print OUT "MODULE = X11::XCB PACKAGE = $perlname" . "Ptr\n\n";
-		foreach my $var (@{$struct->{'field'}}) {
-		    print OUT "".get_vartype($var->{'type'})."\n";
-		    print OUT $var->{'name'}."(self)\n";
-		    print OUT "    $perlname * self\n";
-		    print OUT "  CODE:\n    RETVAL = self->" . cname($var->{name}) . ";\n  OUTPUT:\n    RETVAL\n\n";
-		}
 
-	}
+    my $dogetter = 1;
+
+    my %nostatic = ( # These structs are used from the base protocol
+        xcb_setup_t => 1,
+    );
+
+    if ($struct->{'list'}) {
+        $dogetter = 0;  # If it has a list, the get half shouldn't (can't?) be needed.
+#       foreach my $list (@{$struct->{'list'}}) {
+#       do_push_list(1, $name, $list->{'type'}, $list->{'name'}, $list->{'value'});
+#       }
+    }
+    #print OUT "}\n\n";
+
+    if ($dogetter) {
+        print OUT "MODULE = X11::XCB PACKAGE = $perlname" . "Ptr\n\n";
+        foreach my $var (@{$struct->{'field'}}) {
+            print OUT "".get_vartype($var->{'type'})."\n";
+            print OUT $var->{'name'}."(self)\n";
+            print OUT "    $perlname * self\n";
+            print OUT "  CODE:\n    RETVAL = self->" . cname($var->{name}) . ";\n  OUTPUT:\n    RETVAL\n\n";
+        }
+
+    }
     }
 #    foreach my $union (@{$xcb->{'union'}}) {
-#	my $name = $union->{'name'};
-#	my $xcbname = mangle($name).'_t';
-#	
-#	print OUT "static ";
-#	print OUT "void push_$name (lua_State *L, const $xcbname *x)\n";
-#	print OUT "{\n";
-#	print OUT "    lua_newtable(L);\n";
-#	foreach my $field (@{$union->{'field'}}) {
-#	    my $fn = $field->{'name'}; 
-#	    do_push(1, $field->{'type'}, $fn);
-#	    print OUT "    lua_setfield(L, -2, \"$fn\");\n";
-#	}
-#	if ($union->{'list'}) {
-#	    foreach my $list (@{$union->{'list'}}) {
-#		do_push_list(1, $name, $list->{'type'}, $list->{'name'}, $list->{'value'});
-#	    }
-#	}
-#	print OUT "}\n\n";
+#   my $name = $union->{'name'};
+#   my $xcbname = mangle($name).'_t';
+#
+#   print OUT "static ";
+#   print OUT "void push_$name (lua_State *L, const $xcbname *x)\n";
+#   print OUT "{\n";
+#   print OUT "    lua_newtable(L);\n";
+#   foreach my $field (@{$union->{'field'}}) {
+#       my $fn = $field->{'name'};
+#       do_push(1, $field->{'type'}, $fn);
+#       print OUT "    lua_setfield(L, -2, \"$fn\");\n";
+#   }
+#   if ($union->{'list'}) {
+#       foreach my $list (@{$union->{'list'}}) {
+#       do_push_list(1, $name, $list->{'type'}, $list->{'name'}, $list->{'value'});
+#       }
+#   }
+#   print OUT "}\n\n";
 #    }
 }
 
@@ -234,19 +234,19 @@ sub do_typedefs($)
 {
     my $xcb = shift;
     foreach my $tdef (@{$xcb->{'typedef'}}) {
-	$xcbtype{$tdef->{'newname'}} = $xcbtype{$tdef->{'oldname'}};
-	$luatype{$tdef->{'newname'}} = $luatype{$tdef->{'oldname'}};
-	$luachecktype{$tdef->{'newname'}} = $luachecktype{$tdef->{'oldname'}};
+    $xcbtype{$tdef->{'newname'}} = $xcbtype{$tdef->{'oldname'}};
+    $luatype{$tdef->{'newname'}} = $luatype{$tdef->{'oldname'}};
+    $luachecktype{$tdef->{'newname'}} = $luachecktype{$tdef->{'oldname'}};
     }
     foreach my $tdef (@{$xcb->{'xidtype'}}) {
-	$xcbtype{$tdef->{'name'}} = $xcbtype{'CARD32'};
-	$luatype{$tdef->{'name'}} = $luatype{'CARD32'};
-	$luachecktype{$tdef->{'name'}} = $luachecktype{'CARD32'};
+    $xcbtype{$tdef->{'name'}} = $xcbtype{'CARD32'};
+    $luatype{$tdef->{'name'}} = $luatype{'CARD32'};
+    $luachecktype{$tdef->{'name'}} = $luachecktype{'CARD32'};
     }
     foreach my $tdef (@{$xcb->{'xidunion'}}) {
-	$xcbtype{$tdef->{'name'}} = $xcbtype{'CARD32'};
-	$luatype{$tdef->{'name'}} = $luatype{'CARD32'};
-	$luachecktype{$tdef->{'name'}} = $luachecktype{'CARD32'};
+    $xcbtype{$tdef->{'name'}} = $xcbtype{'CARD32'};
+    $luatype{$tdef->{'name'}} = $luatype{'CARD32'};
+    $luachecktype{$tdef->{'name'}} = $luachecktype{'CARD32'};
     }
 }
 
@@ -263,170 +263,174 @@ sub do_requests($\%)
     my $func = shift;
     
     foreach my $req (@{$xcb->{'request'}}) {
-	my $mangled = mangle($req->{name});
-	my $stripped = $mangled;
-	$stripped =~ s/^xcb_//g;
+    my $mangled = mangle($req->{name});
+    my $stripped = $mangled;
+    $stripped =~ s/^xcb_//g;
 
-	#print Dumper($req);
-	my $cookie = mangle($req->{'name'})."_cookie_t";
-	if (!defined($req->{reply})) {
-		$cookie = "xcb_void_cookie_t";
-	}
-
-	# Function header
-	print OUT "HV *\n";
-	print OUT "$stripped(";
-	# all parameter names
-	my @param_names = ('conn');
-
-	push @param_names, $_->{name} for @{$req->{field}};
-    foreach my $var (@{$req->{'list'}}) {
-	if (!defined($var->{'fieldref'}) && !defined($var->{'op'}) && !defined($var->{'value'})) {
-		push @param_names, $var->{name} . "_len";
-	}
-	push @param_names, $var->{name};
+    #print Dumper($req);
+    my $cookie = mangle($req->{'name'})."_cookie_t";
+    if (!defined($req->{reply})) {
+        $cookie = "xcb_void_cookie_t";
     }
 
-	foreach my $var (@{$req->{'valueparam'}}) {
-		push @param_names, $var->{'value-mask-name'};
-		push @param_names, $var->{'value-list-name'};
-		push @param_names, '...';
-	    }
+    # Function header
+    print OUT "HV *\n";
+    print OUT "$stripped(";
+    # all parameter names
+    my @param_names = ('conn');
+
+    push @param_names, $_->{name} for @{$req->{field}};
+    foreach my $var (@{$req->{'list'}}) {
+    if (!defined($var->{'fieldref'}) && !defined($var->{'op'}) && !defined($var->{'value'})) {
+        push @param_names, $var->{name} . "_len";
+    }
+    push @param_names, $var->{name};
+    }
+
+    foreach my $var (@{$req->{'valueparam'}}) {
+        push @param_names, $var->{'value-mask-name'};
+        push @param_names, $var->{'value-list-name'};
+        push @param_names, '...';
+        }
 
 
-	print OUT (join ',', @param_names);
-	print OUT ")\n";
+    print OUT (join ',', @param_names);
+    print OUT ")\n";
 
 
-	# Declare variables
-#	if (defined($req->{'reply'})) {
-#	    print OUT "    $cookie *cookie;\n";
-#	}
-	print OUT "    XCBConnection *conn\n";
-	foreach my $var (@{$req->{'field'}}) {
-		my $type = get_vartype($var->{type});
-		if ($type =~ /^xcb_/) {
-			$type =~ s/^xcb_/XCB/;
-		}
-	    print OUT "    $type ";
-	    print OUT $var->{'name'}."\n";
-	}
-	if (defined($req->{'list'})) {
-	    foreach my $var (@{$req->{'list'}}) {
-		if (!defined($var->{'fieldref'}) && !defined($var->{'op'}) && !defined($var->{'value'})) {
-		    print OUT "    int ";
-		    print OUT $var->{'name'}."_len\n";
-		}
-		my $type = get_vartype($var->{type});
-		if ($type =~ /^xcb_/) {
-			$type =~ s/^xcb_([a-z])/XCB\u$1/g;
-			$type =~ s/_t$//g;
-		}
+    # Declare variables
+#   if (defined($req->{'reply'})) {
+#       print OUT "    $cookie *cookie;\n";
+#   }
+    print OUT "    XCBConnection *conn\n";
+    foreach my $var (@{$req->{'field'}}) {
+        my $type = get_vartype($var->{type});
+        if ($type =~ /^xcb_/) {
+            $type =~ s/^xcb_/XCB/;
+        }
+        print OUT "    $type ";
+        print OUT $var->{'name'}."\n";
+    }
+    if (defined($req->{'list'})) {
+        foreach my $var (@{$req->{'list'}}) {
+        if (!defined($var->{'fieldref'}) && !defined($var->{'op'}) && !defined($var->{'value'})) {
+            print OUT "    int ";
+            print OUT $var->{'name'}."_len\n";
+        }
+        my $type = get_vartype($var->{type});
+        if ($type =~ /^xcb_/) {
+            $type =~ s/^xcb_([a-z])/XCB\u$1/g;
+            $type =~ s/_t$//g;
+        }
 
-		if ($type eq 'int') {
-			print OUT "    intArray *";
-		} else {
-			print OUT "    $type *";
-		}
+        if ($type eq 'int') {
+            print OUT "    intArray *";
+        } else {
+            # We use char* instead of void* to be able to use pack() in the perl part
+            if ($type eq 'void') {
+                $type = 'char';
+            }
+            print OUT "    $type *";
+        }
 
-		print OUT $var->{'name'}."\n";
-	    }
-	}
-	if (defined($req->{'valueparam'})) {
-	    foreach my $var (@{$req->{'valueparam'}}) {
-		print OUT "    ".get_vartype($var->{'value-mask-type'})." ";
-		print OUT $var->{'value-mask-name'}."\n";
-		print OUT "    intArray *".$var->{'value-list-name'}."\n";
-	    }
-	}
-	print OUT "\n";
+        print OUT $var->{'name'}."\n";
+        }
+    }
+    if (defined($req->{'valueparam'})) {
+        foreach my $var (@{$req->{'valueparam'}}) {
+        print OUT "    ".get_vartype($var->{'value-mask-type'})." ";
+        print OUT $var->{'value-mask-name'}."\n";
+        print OUT "    intArray *".$var->{'value-list-name'}."\n";
+        }
+    }
+    print OUT "\n";
 
-	print OUT "  PREINIT:\n    HV * hash;\n    $cookie cookie;\n";
+    print OUT "  PREINIT:\n    HV * hash;\n    $cookie cookie;\n";
 
-	print OUT "  CODE:\n";
-	
-#	# Read variables from lua
-#	print OUT "    c = ((xcb_connection_t **)luaL_checkudata(L, 1, \"XCB.display\"))[0];\n";
-#	my $index = 1;
-#	foreach my $var (@{$req->{'field'}}) {
-#	    do_get(++$index, $var->{'type'}, $var->{'name'});
-#	}
-#	if (defined($req->{'list'})) {
-#	    foreach my $var (@{$req->{'list'}}) {
-#		if (!defined($var->{'fieldref'}) && !defined($var->{'op'}) && !defined($var->{'value'})) {
-#		    # do_get(++$index, 'CARD32', $var->{'name'}."_len");
-#		    do_get_list(++$index, $var->{'type'}, $var->{'name'}, 1);
-#		} else {
-#		    do_get_list(++$index, $var->{'type'}, $var->{'name'});
-#		}
-#	    }
-#	}
-#	if (defined($req->{'valueparam'})) {
-#	    foreach my $var (@{$req->{'valueparam'}}) {
-#		do_get(++$index, $var->{'value-mask-type'}, $var->{'value-mask-name'});
-#		do_get_list(++$index, 'CARD32', $var->{'value-list-name'});
-#	    }
-#	}
-#	print OUT "\n";
+    print OUT "  CODE:\n";
+
+#   # Read variables from lua
+#   print OUT "    c = ((xcb_connection_t **)luaL_checkudata(L, 1, \"XCB.display\"))[0];\n";
+#   my $index = 1;
+#   foreach my $var (@{$req->{'field'}}) {
+#       do_get(++$index, $var->{'type'}, $var->{'name'});
+#   }
+#   if (defined($req->{'list'})) {
+#       foreach my $var (@{$req->{'list'}}) {
+#       if (!defined($var->{'fieldref'}) && !defined($var->{'op'}) && !defined($var->{'value'})) {
+#           # do_get(++$index, 'CARD32', $var->{'name'}."_len");
+#           do_get_list(++$index, $var->{'type'}, $var->{'name'}, 1);
+#       } else {
+#           do_get_list(++$index, $var->{'type'}, $var->{'name'});
+#       }
+#       }
+#   }
+#   if (defined($req->{'valueparam'})) {
+#       foreach my $var (@{$req->{'valueparam'}}) {
+#       do_get(++$index, $var->{'value-mask-type'}, $var->{'value-mask-name'});
+#       do_get_list(++$index, 'CARD32', $var->{'value-list-name'});
+#       }
+#   }
+#   print OUT "\n";
 
 
-	
-	# Function call
-	print OUT "    ";
-	if (defined($req->{'reply'})) {
-	    print OUT "cookie = ";
-	}
-	print OUT mangle($req->{'name'})."(";
-	my $glob = 'conn->conn, ';
-	foreach my $var (@{$req->{'field'}}) {
-	    $glob .= $var->{'name'};
-	    $glob .= ", ";
-	}
-	if (defined($req->{'list'})) {
-	    foreach my $var (@{$req->{'list'}}) {
-		if (!defined($var->{'fieldref'}) && !defined($var->{'op'}) && !defined($var->{'value'})) {
-		    $glob .= $var->{'name'}.'_len';
-		    $glob .= ", ";
-		}
-		$glob .= $var->{'name'};
-		$glob .= ", ";
-	    }
-	}
-	if (defined($req->{'valueparam'})) {
-	    foreach my $var (@{$req->{'valueparam'}}) {
-		$glob .= $var->{'value-mask-name'};
-		$glob .= ", ";
-		$glob .= $var->{'value-list-name'};
-		$glob .= ", ";
-	    }
-	}
-	chop $glob; chop $glob;  # removing trailing comma
-	print OUT "$glob);\n\n";
+    
+    # Function call
+    print OUT "    ";
+    if (defined($req->{'reply'})) {
+        print OUT "cookie = ";
+    }
+    print OUT mangle($req->{'name'})."(";
+    my $glob = 'conn->conn, ';
+    foreach my $var (@{$req->{'field'}}) {
+        $glob .= $var->{'name'};
+        $glob .= ", ";
+    }
+    if (defined($req->{'list'})) {
+        foreach my $var (@{$req->{'list'}}) {
+        if (!defined($var->{'fieldref'}) && !defined($var->{'op'}) && !defined($var->{'value'})) {
+            $glob .= $var->{'name'}.'_len';
+            $glob .= ", ";
+        }
+        $glob .= $var->{'name'};
+        $glob .= ", ";
+        }
+    }
+    if (defined($req->{'valueparam'})) {
+        foreach my $var (@{$req->{'valueparam'}}) {
+        $glob .= $var->{'value-mask-name'};
+        $glob .= ", ";
+        $glob .= $var->{'value-list-name'};
+        $glob .= ", ";
+        }
+    }
+    chop $glob; chop $glob;  # removing trailing comma
+    print OUT "$glob);\n\n";
 
-	print OUT "    hash = newHV();\n    hv_store(hash, \"sequence\", strlen(\"sequence\"), newSViv(cookie.sequence), 0);\n";
-	print OUT "    RETVAL = hash;\n";
-	
-	# Cleanup
-	if (defined($req->{'list'})) {
-	    foreach my $var (@{$req->{'list'}}) {
-		if ($var->{'type'} ne 'char' and $var->{'type'} ne 'void') {
-		    print OUT "    free(". $var->{'name'}.");\n";
-		}
-	    }
-	}
-	
-	if (defined($req->{'valueparam'})) {
-	    foreach my $var (@{$req->{'valueparam'}}) {
-		print OUT "    free(". $var->{'value-list-name'}.");\n";
-	    }
-	}
+    print OUT "    hash = newHV();\n    hv_store(hash, \"sequence\", strlen(\"sequence\"), newSViv(cookie.sequence), 0);\n";
+    print OUT "    RETVAL = hash;\n";
 
-	my $retcount = 0;
-	$retcount = 1 if (defined($req->{'reply'}));
-	print OUT "  OUTPUT:\n    RETVAL\n\n";
+    # Cleanup
+    if (defined($req->{'list'})) {
+        foreach my $var (@{$req->{'list'}}) {
+        if ($var->{'type'} ne 'char' and $var->{'type'} ne 'void') {
+            print OUT "    free(". $var->{'name'}.");\n";
+        }
+        }
+    }
 
-	my $manglefunc = mangle($req->{'name'}, 1);
-	$func->{$manglefunc} = $req->{'name'};
+    if (defined($req->{'valueparam'})) {
+        foreach my $var (@{$req->{'valueparam'}}) {
+        print OUT "    free(". $var->{'value-list-name'}.");\n";
+        }
+    }
+
+    my $retcount = 0;
+    $retcount = 1 if (defined($req->{'reply'}));
+    print OUT "  OUTPUT:\n    RETVAL\n\n";
+
+    my $manglefunc = mangle($req->{'name'}, 1);
+    $func->{$manglefunc} = $req->{'name'};
     }
 }
 
@@ -438,28 +442,28 @@ sub do_events($)
     # TODO: events
     
 #    foreach my $event (@{$xcb->{'event'}}) {
-#	my $xcbev = mangle($event->{'name'})."_event_t";
-#	print OUT "/* This function adds the remaining fields into the table\n  that is on the top of the stack */\n";
-#	print OUT "static void set_";
-#	print OUT $event->{'name'};
-#	print OUT "(lua_State *L, xcb_generic_event_t *event)\n{\n";
-# 	print OUT "    $xcbev *x = ($xcbev *)event;\n";
-#	foreach my $var (@{$event->{'field'}}) {
-#	    my $name = $var->{'name'};
-#	    do_push(1, $var->{'type'}, $name);
-#	    print OUT "    lua_setfield(L, -2, \"$name\");\n";
-#	}
-#	print OUT "}\n\n";
-#	$events{$event->{'number'}} = 'set_'.$event->{'name'};
+#   my $xcbev = mangle($event->{'name'})."_event_t";
+#   print OUT "/* This function adds the remaining fields into the table\n  that is on the top of the stack */\n";
+#   print OUT "static void set_";
+#   print OUT $event->{'name'};
+#   print OUT "(lua_State *L, xcb_generic_event_t *event)\n{\n";
+#   print OUT "    $xcbev *x = ($xcbev *)event;\n";
+#   foreach my $var (@{$event->{'field'}}) {
+#       my $name = $var->{'name'};
+#       do_push(1, $var->{'type'}, $name);
+#       print OUT "    lua_setfield(L, -2, \"$name\");\n";
+#   }
+#   print OUT "}\n\n";
+#   $events{$event->{'number'}} = 'set_'.$event->{'name'};
 #    }
 #    
 #    foreach my $event (@{$xcb->{'eventcopy'}}) {
-#	$events{$event->{'number'}} = 'set_'.$event->{'ref'};
+#   $events{$event->{'number'}} = 'set_'.$event->{'ref'};
 #    }
 #    
 #    print OUT "static void init_events()\n{\n";
 #    foreach my $i (sort { $a <=> $b } keys %events) {
-#	print OUT "    RegisterEvent($i, $events{$i});\n";
+#   print OUT "    RegisterEvent($i, $events{$i});\n";
 #    }
 #    print OUT "}\n\n";
 }
@@ -469,43 +473,43 @@ sub do_replies($\%\%)
     my $xcb = shift;
     my $func = shift;
     my $collect = shift;
-    
+
     foreach my $req (@{$xcb->{'request'}}) {
-	my $rep = $req->{'reply'};
-	next unless defined($rep);
-	
-	my $name = mangle($req->{'name'}) . "_reply";
-	my $reply = mangle($req->{'name'}) . "_reply_t";
-	my $perlname = $name;
-	$perlname =~ s/^xcb_//g;
-	my $cookie = mangle($req->{name}) . "_cookie_t";
+    my $rep = $req->{'reply'};
+    next unless defined($rep);
 
-	print OUT "HV *\n$perlname(conn,sequence)\n";
-	print OUT "    XCBConnection *conn\n";
-	print OUT "    int sequence\n";
-	print OUT "  PREINIT:\n";
-	print OUT "    HV * hash;\n";
-	print OUT "    $cookie cookie;\n";
-	print OUT "    $reply *reply;\n";
-	print OUT "  CODE:\n";
-	print OUT "    cookie.sequence = sequence;\n";
-	print OUT "    reply = $name(conn->conn, cookie, NULL);\n";
-	print OUT "    hash = newHV();\n";
-	# We ignore pad0 and response_type. Every reply has sequence and length
-	print OUT "    hv_store(hash, \"sequence\", strlen(\"sequence\"), newSViv(reply->sequence), 0);\n";
-	print OUT "    hv_store(hash, \"length\", strlen(\"length\"), newSViv(reply->length), 0);\n";
-	foreach my $var (@{$rep->[0]->{'field'}}) {
-		my $type = get_vartype($var->{type});
+    my $name = mangle($req->{'name'}) . "_reply";
+    my $reply = mangle($req->{'name'}) . "_reply_t";
+    my $perlname = $name;
+    $perlname =~ s/^xcb_//g;
+    my $cookie = mangle($req->{name}) . "_cookie_t";
+
+    print OUT "HV *\n$perlname(conn,sequence)\n";
+    print OUT "    XCBConnection *conn\n";
+    print OUT "    int sequence\n";
+    print OUT "  PREINIT:\n";
+    print OUT "    HV * hash;\n";
+    print OUT "    $cookie cookie;\n";
+    print OUT "    $reply *reply;\n";
+    print OUT "  CODE:\n";
+    print OUT "    cookie.sequence = sequence;\n";
+    print OUT "    reply = $name(conn->conn, cookie, NULL);\n";
+    print OUT "    hash = newHV();\n";
+    # We ignore pad0 and response_type. Every reply has sequence and length
+    print OUT "    hv_store(hash, \"sequence\", strlen(\"sequence\"), newSViv(reply->sequence), 0);\n";
+    print OUT "    hv_store(hash, \"length\", strlen(\"length\"), newSViv(reply->length), 0);\n";
+    foreach my $var (@{$rep->[0]->{'field'}}) {
+        my $type = get_vartype($var->{type});
         my $name = cname($var->{name});
-		if ($type eq 'int') {
-			print OUT "    hv_store(hash, \"$name\", strlen(\"$name\"), newSViv(reply->$name), 0);\n";
-		} else {
-			print OUT "    /* TODO: type $type, name $var->{name} */\n";
-		}
-	}
+        if ($type eq 'int') {
+            print OUT "    hv_store(hash, \"$name\", strlen(\"$name\"), newSViv(reply->$name), 0);\n";
+        } else {
+            print OUT "    /* TODO: type $type, name $var->{name} */\n";
+        }
+    }
 
-	print OUT "    RETVAL = hash;\n";
-	print OUT "  OUTPUT:\n    RETVAL\n\n";
+    print OUT "    RETVAL = hash;\n";
+    print OUT "  OUTPUT:\n    RETVAL\n\n";
     }
 }
 
@@ -513,7 +517,7 @@ sub do_enums($)
 {
     my $xcb = shift;
 
-	foreach my $enum (@{$xcb->{'enum'}}) {
+    foreach my $enum (@{$xcb->{'enum'}}) {
         my $name = uc(mangle($enum->{'name'}, 1));
         foreach my $item (@{$enum->{'item'}}) {
             my $tname = $name . "_" . uc(mangle($item->{'name'}, 1));
@@ -619,7 +623,7 @@ MODULE = X11::XCB PACKAGE = X11::XCB
 
 BOOT:
 {
-	HV *stash = gv_stashpvn("X11::XCB", strlen("X11::XCB"), TRUE);
+    HV *stash = gv_stashpvn("X11::XCB", strlen("X11::XCB"), TRUE);
 eot
 ;
 
@@ -647,7 +651,7 @@ new(class,displayname,screenp)
 
 eot
     ;
-    
+
     my %functions;
     my %collectors;
     do_typedefs($xcb);
