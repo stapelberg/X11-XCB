@@ -13,15 +13,7 @@ use Data::Dumper;
 subtype 'ValidWindowType'
     => as 'Str'
     => where {
-        my $c = X11::XCB::Atom->new(name => '_NET_WM_WINDOW_TYPE_' . uc($_));
-        # Unfortunately, we cannot use TryCatch here. If anyone figures out
-        # why, please send a patch :-)
-        eval {
-            $c->id;
-        };
-        # If there was an error, $@ is not undef. Thus, we return whether
-        # there was no error
-        return !$@;
+        X11::XCB::Atom->new(name => '_NET_WM_WINDOW_TYPE_' . uc($_))->exists;
     }
     => message { "The window type you provided ($_) does not exist" };
 
@@ -51,12 +43,18 @@ sub _build_id {
 
 =head2 rect
 
-As long as the window is not mapped, this returns the planned geometry. After
-the window is mapped, every time you access C<rect>, the geometry will be
-determined by querying X11 about it, thus generating at least 1 round-trip for
-non-reparenting window managers and two or more round-trips for reparenting
-window managers.
+As long as the window is not mapped, this returns the planned geometry. As soon
+as the window is mapped, this retuns its geometry B<including> the window
+decorations.
 
+Thus, after the window is mapped, every time you access C<rect>, the geometry
+will be determined by querying X11 about it, thus generating at least 1 round-
+trip for non-reparenting window managers and two or more round-trips for
+reparenting window managers.
+
+In scalar context it returns only the window’s geometry, in list context it
+returns the window’s geometry and the geometry of the top window (the one
+containing this window but the first one under the root window in hierarchy).
 =cut
 sub rect {
     my $self = shift;
@@ -87,14 +85,16 @@ sub rect {
     return X11::XCB::Rect->new($relative_geometry) if ($last_id == $self->id);
 
     $cookie = $conn->get_geometry($last_id);
-    my $absolute_geometry = $conn->get_geometry_reply($cookie->{sequence});
+    my $parent_geometry = $conn->get_geometry_reply($cookie->{sequence});
 
-    return X11::XCB::Rect->new(
-            x => $absolute_geometry->{x} + $relative_geometry->{x},
-            y => $absolute_geometry->{y} + $relative_geometry->{y},
+    my $absolute = X11::XCB::Rect->new(
+            x => $parent_geometry->{x} + $relative_geometry->{x},
+            y => $parent_geometry->{y} + $relative_geometry->{y},
             width => $relative_geometry->{width},
             height => $relative_geometry->{height},
     );
+
+    return wantarray ? ($absolute, X11::XCB::Rect->new($parent_geometry)) : $absolute;
 }
 
 sub create {
