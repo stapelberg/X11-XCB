@@ -1,15 +1,39 @@
 package X11::XCB::Window;
 
 use Moose;
+use Moose::Util::TypeConstraints;
 use X11::XCB::Rect;
 use X11::XCB::Connection;
 use X11::XCB::Atom;
 use X11::XCB qw(:all);
 use Data::Dumper;
 
+# A valid window type is every string, which, appended to _NET_WM_WINDOW_TYPE_
+# returns an existing atom.
+subtype 'ValidWindowType'
+    => as 'Str'
+    => where {
+        my $c = X11::XCB::Atom->new(name => '_NET_WM_WINDOW_TYPE_' . uc($_));
+        # Unfortunately, we cannot use TryCatch here. If anyone figures out
+        # why, please send a patch :-)
+        eval {
+            $c->id;
+        };
+        # If there was an error, $@ is not undef. Thus, we return whether
+        # there was no error
+        return !$@;
+    }
+    => message { "The window type you provided ($_) does not exist" };
+
+# We can make an Atom out of a valid window type
+coerce 'X11::XCB::Atom'
+    => from 'ValidWindowType'
+    => via { X11::XCB::Atom->new(name => '_NET_WM_WINDOW_TYPE_' . uc($_)) };
+
 has 'class' => (is => 'ro', isa => 'Str', required => 1);
 has 'id' => (is => 'ro', isa => 'Int', init_arg => undef, lazy_build => 1);
 has '_rect' => (is => 'ro', isa => 'X11::XCB::Rect', required => 1, init_arg => 'rect');
+has 'type' => (is => 'rw', isa => 'X11::XCB::Atom', coerce => 1, trigger => \&_update_type);
 has 'override_redirect' => (is => 'ro', isa => 'Int', default => 0);
 # TODO: make this a string and convert it
 has 'background_color' => (is => 'ro', isa => 'Int', default => undef);
@@ -17,6 +41,7 @@ has 'name' => (is => 'rw', isa => 'Str', trigger => \&_update_name);
 has 'fullscreen' => (is => 'rw', isa => 'Int', trigger => \&_update_fullscreen);
 has '_conn' => (is => 'ro', default => sub { X11::XCB::Connection->instance });
 has '_mapped' => (is => 'rw', isa => 'Int', default => 0);
+has '_created' => (is => 'rw', isa => 'Int', default => 0);
 
 sub _build_id {
     my $self = shift;
@@ -103,6 +128,8 @@ sub create {
             $mask,
             @values
     );
+
+    $self->_created(1);
 }
 
 sub map {
@@ -190,6 +217,26 @@ sub _update_fullscreen {
     }
 
     $conn->flush;
+}
+
+sub _update_type {
+    my $self = shift;
+    my $atomname = X11::XCB::Atom->new(name => '_NET_WM_WINDOW_TYPE');
+    my $atomtype = X11::XCB::Atom->new(name => 'ATOM');
+
+    # If we are not mapped, this property will be set when creating the window
+    return unless ($self->_created);
+
+    $self->_conn->change_property(
+        PROP_MODE_REPLACE,
+        $self->id,
+        $atomname->id,
+        $atomtype->id,
+        32,         # 32 bit integer
+        1,
+        pack('L', $self->type->id)
+    );
+    $self->_conn->flush;
 }
 
 1
