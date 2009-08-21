@@ -4,6 +4,7 @@ package X11::XCB::Connection;
 
 use MooseX::Singleton;
 use X11::XCB qw(:all);
+use X11::XCB::Screen;
 
 has 'display' => (is => 'rw', isa => 'Str');
 has 'conn' => (is => 'rw', isa => 'XCBConnectionPtr', handles => qr/.*/);
