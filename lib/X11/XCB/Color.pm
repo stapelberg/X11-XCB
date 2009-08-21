@@ -20,7 +20,7 @@ sub _build_pixel {
     # Strip optional leading # from hex code
     $hex =~ s/^#//;
 
-    my @parts = unpack('CCC', pack('H2H2H2', unpack('(A2)*', $hex)));
+    my @parts = map(hex, unpack('(A2)*', $hex));
     my $color = ($parts[0] << 16) + ($parts[1] << 8) + $parts[2];
 
     return $color
