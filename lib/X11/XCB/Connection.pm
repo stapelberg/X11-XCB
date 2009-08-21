@@ -30,5 +30,30 @@ sub input_focus {
     return $reply->{focus};
 }
 
+=head2 screens
+
+Returns an arrayref of L<X11::XCB::Screen>s.
+
+=cut
+sub screens {
+    my $class = shift;
+
+    my $conn = X11::XCB::Connection->conn;
+    my $cookie = $conn->xinerama_query_screens;
+    my $screens = $conn->xinerama_query_screens_reply($cookie->{sequence});
+    my @result;
+    for my $geom (@{$screens->{screen_info}}) {
+        my $rect = X11::XCB::Rect->new(
+                x => $geom->{x_org},
+                y => $geom->{y_org},
+                width => $geom->{width},
+                height => $geom->{height}
+        );
+        push @result, X11::XCB::Screen->new(rect => $rect);
+    }
+
+    return \@result;
+}
+
 1
 # vim:ts=4:sw=4:expandtab
