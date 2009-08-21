@@ -134,12 +134,40 @@ sub create {
     $self->_update_type if (defined($self->type));
 }
 
+sub attributes {
+    my $self = shift;
+    my $conn = $self->_conn;
+
+    my $cookie = $conn->get_window_attributes($self->id);
+    my $attributes = $conn->get_window_attributes_reply($cookie->{sequence});
+
+    return $attributes;
+}
+
 sub map {
     my $self = shift;
 
     $self->_conn->map_window($self->id);
     $self->_conn->flush;
     $self->_mapped(1);
+}
+
+sub unmap {
+    my $self = shift;
+
+    $self->_conn->unmap_window($self->id);
+    $self->_conn->flush;
+    $self->_mapped(1);
+}
+
+sub mapped {
+    my $self = shift;
+
+    my $attributes = $self->attributes;
+
+    # MAP_STATE_UNVIEWABLE is used when the window itself is mapped but one
+    # of its ancestors is not
+    return ($attributes->{map_state} == MAP_STATE_VIEWABLE);
 }
 
 sub _update_name {
@@ -167,6 +195,9 @@ sub _update_fullscreen {
     my $self = shift;
     my $conn = $self->_conn;
     my $atomname = X11::XCB::Atom->new(name => '_NET_WM_STATE');
+
+    die "Cannot change fullscreen property unless you create the window"
+        unless ($self->_created);
 
     # If we’re already mapped, we have to send a client message to the root
     # window containing our request to change the _NET_WM_STATE atom.
@@ -201,11 +232,12 @@ sub _update_fullscreen {
         );
     } else {
         my $atomtype = X11::XCB::Atom->new(name => 'ATOM');
-        my $atom = X11::XCB::Atom->new(
-                name => ($self->fullscreen ?
-                            '_NET_WM_STATE_NORMAL' :
-                            '_NET_WM_STATE_FULLSCREEN')
-        );
+        my $atoms;
+        if ($self->fullscreen) {
+            print "getting fs atom\n";
+            my $atom = X11::XCB::Atom->new(name => '_NET_WM_STATE_FULLSCREEN');
+            $atoms = pack('L', $atom->id);
+        }
 
         $conn->change_property(
                 PROP_MODE_REPLACE,
@@ -214,7 +246,7 @@ sub _update_fullscreen {
                 $atomtype->id,
                 32,         # 32 bit integer
                 1,
-                pack('L', $atom->id)
+                $atoms,
         );
     }
 

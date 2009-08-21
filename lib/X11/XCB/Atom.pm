@@ -24,7 +24,7 @@ sub _build_id {
     }
 
     # None = 0 means the atom does not exist
-    croak "No such atom" if ($id == 0);
+    croak "No such atom (" . $self->name . ")" if ($id == 0);
 
     return $id;
 }

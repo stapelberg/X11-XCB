@@ -20,5 +20,15 @@ sub connect {
     X11::XCB::Connection->conn($conn);
 }
 
+sub input_focus {
+    my $class = shift;
+
+    my $conn = X11::XCB::Connection->conn;
+    my $cookie = $conn->get_input_focus();
+    my $reply = $conn->get_input_focus_reply($cookie->{sequence});
+
+    return $reply->{focus};
+}
+
 1
 # vim:ts=4:sw=4:expandtab
