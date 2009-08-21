@@ -24,7 +24,7 @@ coerce 'X11::XCB::Atom'
 
 has 'class' => (is => 'ro', isa => 'Str', required => 1);
 has 'id' => (is => 'ro', isa => 'Int', init_arg => undef, lazy_build => 1);
-has '_rect' => (is => 'ro', isa => 'X11::XCB::Rect', required => 1, init_arg => 'rect');
+has '_rect' => (is => 'ro', isa => 'X11::XCB::Rect', required => 1, init_arg => 'rect', coerce => 1);
 has 'type' => (is => 'rw', isa => 'X11::XCB::Atom', coerce => 1, trigger => \&_update_type);
 has 'override_redirect' => (is => 'ro', isa => 'Int', default => 0);
 # TODO: make this a string and convert it
