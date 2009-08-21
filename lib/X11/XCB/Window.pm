@@ -5,6 +5,7 @@ use Moose::Util::TypeConstraints;
 use X11::XCB::Rect;
 use X11::XCB::Connection;
 use X11::XCB::Atom;
+use X11::XCB::Color;
 use X11::XCB qw(:all);
 use Data::Dumper;
 
@@ -27,8 +28,7 @@ has 'id' => (is => 'ro', isa => 'Int', init_arg => undef, lazy_build => 1);
 has '_rect' => (is => 'ro', isa => 'X11::XCB::Rect', required => 1, init_arg => 'rect', coerce => 1);
 has 'type' => (is => 'rw', isa => 'X11::XCB::Atom', coerce => 1, trigger => \&_update_type);
 has 'override_redirect' => (is => 'ro', isa => 'Int', default => 0);
-# TODO: make this a string and convert it
-has 'background_color' => (is => 'ro', isa => 'Int', default => undef);
+has 'background_color' => (is => 'ro', isa => 'X11::XCB::Color', coerce => 1, default => undef);
 has 'name' => (is => 'rw', isa => 'Str', trigger => \&_update_name);
 has 'fullscreen' => (is => 'rw', isa => 'Int', trigger => \&_update_fullscreen);
 has '_conn' => (is => 'ro', default => sub { X11::XCB::Connection->instance });
@@ -105,7 +105,7 @@ sub create {
 
     if ($self->background_color) {
         $mask |= CW_BACK_PIXEL;
-        push @values, $self->background_color;
+        push @values, $self->background_color->pixel;
     }
 
 

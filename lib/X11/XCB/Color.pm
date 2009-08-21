@@ -1,7 +1,11 @@
 package X11::XCB::Color;
 
 use Moose;
-use Data::Dumper;
+use Moose::Util::TypeConstraints;
+
+coerce 'X11::XCB::Color'
+    => from 'Str'
+    => via { X11::XCB::Color->new(hexcode => $_) };
 
 has 'hexcode' => (is => 'ro', isa => 'Str', required => 1);
 has 'pixel' => (is => 'ro', isa => 'Int', lazy_build => 1);
