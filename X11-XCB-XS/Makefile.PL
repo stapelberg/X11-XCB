@@ -28,7 +28,7 @@ WriteMakefile(
     ($] >= 5.005 ?     ## Add these new keywords supported since 5.005
       (ABSTRACT_FROM  => 'lib/X11/XCB.pm', # retrieve abstract from module
        AUTHOR         => 'Michael Stapelberg <michael@>') : ()),
-    LIBS              => [qw(-lxcb)],
+    LIBS              => [ '-lxcb -lxcb-xinerama' ],
     DEFINE            => '', # e.g., '-DHAVE_SOMETHING'
     INC               => '-I.', # e.g., '-I. -I/usr/include/other'
 );

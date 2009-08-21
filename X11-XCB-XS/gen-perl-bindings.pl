@@ -11,11 +11,14 @@
 
 use warnings;
 use strict;
+use autodie;
 use Data::Dumper;
 use File::Basename qw(basename);
+use List::Util qw(first);
 
 use XML::Simple qw(:strict);
 
+my $prefix = 'xcb_';
 
 my %xcbtype = (
     BOOL => 'int',
@@ -81,7 +84,7 @@ sub mangle($;$)
     my $clean = shift;
     my $mangled = '';
 
-    $mangled = 'xcb_' unless ($clean);
+    $mangled = $prefix unless ($clean);
 
     if ($simple{$name}) {
     $mangled .= lc($name);
@@ -470,46 +473,84 @@ sub do_events($)
 
 sub do_replies($\%\%)
 {
-    my $xcb = shift;
-    my $func = shift;
-    my $collect = shift;
+    my ($xcb, $func, $collect) = @_;
 
-    foreach my $req (@{$xcb->{'request'}}) {
-    my $rep = $req->{'reply'};
-    next unless defined($rep);
+    for my $req (@{$xcb->{request}}) {
+        my $rep = $req->{reply};
+        next unless defined($rep);
 
-    my $name = mangle($req->{'name'}) . "_reply";
-    my $reply = mangle($req->{'name'}) . "_reply_t";
-    my $perlname = $name;
-    $perlname =~ s/^xcb_//g;
-    my $cookie = mangle($req->{name}) . "_cookie_t";
+        my $name = mangle($req->{'name'}) . "_reply";
+        my $reply = mangle($req->{'name'}) . "_reply_t";
+        my $perlname = $name;
+        $perlname =~ s/^xcb_//g;
+        my $cookie = mangle($req->{name}) . "_cookie_t";
 
-    print OUT "HV *\n$perlname(conn,sequence)\n";
-    print OUT "    XCBConnection *conn\n";
-    print OUT "    int sequence\n";
-    print OUT "  PREINIT:\n";
-    print OUT "    HV * hash;\n";
-    print OUT "    $cookie cookie;\n";
-    print OUT "    $reply *reply;\n";
-    print OUT "  CODE:\n";
-    print OUT "    cookie.sequence = sequence;\n";
-    print OUT "    reply = $name(conn->conn, cookie, NULL);\n";
-    print OUT "    hash = newHV();\n";
-    # We ignore pad0 and response_type. Every reply has sequence and length
-    print OUT "    hv_store(hash, \"sequence\", strlen(\"sequence\"), newSViv(reply->sequence), 0);\n";
-    print OUT "    hv_store(hash, \"length\", strlen(\"length\"), newSViv(reply->length), 0);\n";
-    foreach my $var (@{$rep->[0]->{'field'}}) {
-        my $type = get_vartype($var->{type});
-        my $name = cname($var->{name});
-        if ($type eq 'int') {
-            print OUT "    hv_store(hash, \"$name\", strlen(\"$name\"), newSViv(reply->$name), 0);\n";
-        } else {
-            print OUT "    /* TODO: type $type, name $var->{name} */\n";
+        print OUT "HV *\n$perlname(conn,sequence)\n";
+        print OUT "    XCBConnection *conn\n";
+        print OUT "    int sequence\n";
+        print OUT "  PREINIT:\n";
+        print OUT "    HV * hash;\n";
+        print OUT "    HV * inner_hash;\n";
+        print OUT "    AV * alist;\n";
+        print OUT "    int c;\n";
+        print OUT "    $cookie cookie;\n";
+        print OUT "    $reply *reply;\n";
+        print OUT "  CODE:\n";
+        print OUT "    cookie.sequence = sequence;\n";
+        print OUT "    reply = $name(conn->conn, cookie, NULL);\n";
+        print OUT "    hash = newHV();\n";
+        # We ignore pad0 and response_type. Every reply has sequence and length
+        print OUT "    hv_store(hash, \"sequence\", strlen(\"sequence\"), newSViv(reply->sequence), 0);\n";
+        print OUT "    hv_store(hash, \"length\", strlen(\"length\"), newSViv(reply->length), 0);\n";
+        foreach my $var (@{$rep->[0]->{'field'}}) {
+            my $type = get_vartype($var->{type});
+            my $name = cname($var->{name});
+            if ($type eq 'int') {
+                print OUT "    hv_store(hash, \"$name\", strlen(\"$name\"), newSViv(reply->$name), 0);\n";
+            } else {
+                print OUT "    /* TODO: type $type, name $var->{name} */\n";
+            }
         }
-    }
 
-    print OUT "    RETVAL = hash;\n";
-    print OUT "  OUTPUT:\n    RETVAL\n\n";
+        for my $list (@{$rep->[0]->{list}}) {
+            my $listname = $list->{name};
+            my $type = mangle($list->{type}) . '_t';
+            my $pre = mangle($req->{name});
+
+            # Get the type description of the list’s members
+            my $struct = first { $_->{name} eq $list->{type} } @{$xcb->{struct}};
+
+            next unless defined($struct->{field}) && scalar(@{$struct->{field}}) > 0;
+
+            print OUT "    {\n";
+            print OUT "    /* Handling list part of the reply */\n";
+            print OUT "    alist = newAV();\n";
+            print OUT "    $type *list = $pre" . '_' . "$listname(reply);\n";
+            print OUT "    for (c = 0; c < $pre" . '_' . "$listname" . "_length(reply); c++) {\n";
+            print OUT "      inner_hash = newHV();\n";
+            for my $field (@{$struct->{field}}) {
+                my $type = get_vartype($field->{type});
+                my $name = cname($field->{name});
+
+                if ($type eq 'int') {
+                    print OUT "      hv_store(inner_hash, \"$name\", strlen(\"$name\"), newSViv(list[c].$name), 0);\n";
+                } else {
+                    print OUT "      /* TODO: type $type, name $name */\n";
+                }
+            }
+            print OUT "      av_push(alist, newRV((SV*)inner_hash));\n";
+
+            print OUT "    }\n";
+            print OUT "    hv_store(hash, \"" . $list->{name} . "\", strlen(\"" . $list->{name} . "\"), newRV((SV*)alist), 0);\n";
+
+            print OUT "    }\n";
+        }
+
+        #print Dumper($rep);
+        #if (defined($rep->{list})) {
+
+        print OUT "    RETVAL = hash;\n";
+        print OUT "  OUTPUT:\n    RETVAL\n\n";
     }
 }
 
@@ -582,34 +623,35 @@ my @files;
 
 # TODO: use pkg-config
 push @files, '/usr/share/xcb/xproto.xml';
+push @files, '/usr/share/xcb/xinerama.xml';
 
-foreach my $name (@files) {
-    my $path = $name;
-    $name =~ s/\.xml$//;
-    $name = basename($name);
+open(OUT, ">XCB.xs");
+open(OUTTM, ">typemap");
+open(OUTENUMS, ">enums.list");
 
-    my $xcb = XMLin("$path", KeyAttr => undef, ForceArray => 1);
+print OUTTM "XCBConnection * T_PTROBJ\n";
+print OUTTM "intArray * T_ARRAY\n";
 
-    open(OUT, ">XCB.xs") or die ("Cannot open $name.xs for writing");
-    open(OUTTD, ">$name.typedefs") or die ("Cannot open $name.xs for writing");
-    open(OUTTM, ">typemap") or die ("Cannot open $name.xs for writing");
-    open(OUTENUMS, ">enums.list") or die ("Cannot open $name.xs for writing");
-
-    print OUTTD "typedef struct my_xcb_conn XCBConnection;\n";
-    print OUTTD "typedef int intArray;\n";
-    print OUTTM "XCBConnection * T_PTROBJ\n";
-    print OUTTM "intArray * T_ARRAY\n";
-
-print OUT <<eot
+print OUT <<eot;
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
 #include <xcb/xcb.h>
+#include <xcb/xinerama.h>
 #include "wrapper.h"
 
 #include "ppport.h"
+eot
+for my $name (@files) {
+    my $bname = basename($name);
+    $bname =~ s/\.xml$//;
+    print OUT qq|#include "$bname.typedefs"\n|;
+}
 
-#include "$name.typedefs"
+print OUT <<eot;
+
+typedef struct my_xcb_conn XCBConnection;
+typedef int intArray;
 
 intArray *intArrayPtr(int num) {
         intArray *array;
@@ -627,7 +669,16 @@ BOOT:
 eot
 ;
 
+for my $name (@files) {
+    my $xcb = XMLin($name, KeyAttr => undef, ForceArray => 1);
+    if ($name =~ /xproto/) {
+        $prefix = 'xcb_';
+    } else {
+        $prefix = 'xcb_' . basename($name) . '_';
+        $prefix =~ s/\.xml$//;
+    }
     do_enums($xcb);
+}
 
 print OUT <<eot
 }
@@ -652,6 +703,24 @@ new(class,displayname,screenp)
 eot
     ;
 
+
+foreach my $name (@files) {
+    my $path = $name;
+    $name =~ s/\.xml$//;
+    $name = basename($name);
+
+    my $xcb = XMLin("$path", KeyAttr => undef, ForceArray => 1);
+
+    open(OUTTD, ">$name.typedefs");
+
+
+    if ($name =~ /xproto/) {
+        $prefix = 'xcb_';
+    } else {
+        $prefix = 'xcb_' . basename($name) . '_';
+        $prefix =~ s/\.xml$//;
+    }
+
     my %functions;
     my %collectors;
     do_typedefs($xcb);
@@ -660,6 +729,7 @@ eot
     print OUT "MODULE = X11::XCB PACKAGE = XCBConnectionPtr\n";
     do_requests($xcb, %functions);
     do_replies($xcb, %functions, %collectors);
+}
 
 # convenience functions
 print OUT <<eot
@@ -689,8 +759,7 @@ flush(conn)
 eot
 ;
 
-    close OUT;
-}
+close OUT;
 
 # Copyright (C) 2009 Michael Stapelberg <michael at stapelberg dot de>
 # Copyright (C) 2007 Hummingbird Ltd. All Rights Reserved.
