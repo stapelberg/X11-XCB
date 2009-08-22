@@ -622,25 +622,27 @@ sub do_enums($)
     #print OUT "}\n\n";
 }
 
-my @files;
+sub generate {
+    my @files;
 
-# TODO: Handle all .xmls
-#opendir(DIR, '.');
-#@files = grep { /\.xml$/ } readdir(DIR);
-#closedir DIR;
+    # TODO: Handle all .xmls
+    #opendir(DIR, '.');
+    #@files = grep { /\.xml$/ } readdir(DIR);
+    #closedir DIR;
 
-# TODO: use pkg-config
-push @files, '/usr/share/xcb/xproto.xml';
-push @files, '/usr/share/xcb/xinerama.xml';
+    # TODO: use pkg-config
+        # pkg-config --variable=xcbincludedir xcb-proto
+    push @files, '/usr/share/xcb/xproto.xml';
+    push @files, '/usr/share/xcb/xinerama.xml';
 
-open(OUT, ">XCB.xs");
-open(OUTTM, ">typemap");
-open(OUTENUMS, ">enums.list");
+    open(OUT, ">XCB.xs");
+    open(OUTTM, ">typemap");
+    open(OUTENUMS, ">enums.list");
 
-print OUTTM "XCBConnection * T_PTROBJ\n";
-print OUTTM "intArray * T_ARRAY\n";
+    print OUTTM "XCBConnection * T_PTROBJ\n";
+    print OUTTM "intArray * T_ARRAY\n";
 
-print OUT <<eot;
+    print OUT <<eot;
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
@@ -650,13 +652,13 @@ print OUT <<eot;
 
 #include "ppport.h"
 eot
-for my $name (@files) {
-    my $bname = basename($name);
-    $bname =~ s/\.xml$//;
-    print OUT qq|#include "$bname.typedefs"\n|;
-}
+    for my $name (@files) {
+        my $bname = basename($name);
+        $bname =~ s/\.xml$//;
+        print OUT qq|#include "$bname.typedefs"\n|;
+    }
 
-print OUT <<eot;
+    print OUT <<eot;
 
 typedef struct my_xcb_conn XCBConnection;
 typedef int intArray;
@@ -677,18 +679,18 @@ BOOT:
 eot
 ;
 
-for my $name (@files) {
-    my $xcb = XMLin($name, KeyAttr => undef, ForceArray => 1);
-    if ($name =~ /xproto/) {
-        $prefix = 'xcb_';
-    } else {
-        $prefix = 'xcb_' . basename($name) . '_';
-        $prefix =~ s/\.xml$//;
+    for my $name (@files) {
+        my $xcb = XMLin($name, KeyAttr => undef, ForceArray => 1);
+        if ($name =~ /xproto/) {
+            $prefix = 'xcb_';
+        } else {
+            $prefix = 'xcb_' . basename($name) . '_';
+            $prefix =~ s/\.xml$//;
+        }
+        do_enums($xcb);
     }
-    do_enums($xcb);
-}
 
-print OUT <<eot
+    print OUT <<eot
 }
 
 
@@ -712,35 +714,35 @@ eot
     ;
 
 
-foreach my $name (@files) {
-    my $path = $name;
-    $name =~ s/\.xml$//;
-    $name = basename($name);
+    foreach my $name (@files) {
+        my $path = $name;
+        $name =~ s/\.xml$//;
+        $name = basename($name);
 
-    my $xcb = XMLin("$path", KeyAttr => undef, ForceArray => 1);
+        my $xcb = XMLin("$path", KeyAttr => undef, ForceArray => 1);
 
-    open(OUTTD, ">$name.typedefs");
+        open(OUTTD, ">$name.typedefs");
 
 
-    if ($name =~ /xproto/) {
-        $prefix = 'xcb_';
-    } else {
-        $prefix = 'xcb_' . basename($name) . '_';
-        $prefix =~ s/\.xml$//;
+        if ($name =~ /xproto/) {
+            $prefix = 'xcb_';
+        } else {
+            $prefix = 'xcb_' . basename($name) . '_';
+            $prefix =~ s/\.xml$//;
+        }
+
+        my %functions;
+        my %collectors;
+        do_typedefs($xcb);
+        do_structs($xcb);
+        do_events($xcb);
+        print OUT "MODULE = X11::XCB PACKAGE = XCBConnectionPtr\n";
+        do_requests($xcb, %functions);
+        do_replies($xcb, %functions, %collectors);
     }
 
-    my %functions;
-    my %collectors;
-    do_typedefs($xcb);
-    do_structs($xcb);
-    do_events($xcb);
-    print OUT "MODULE = X11::XCB PACKAGE = XCBConnectionPtr\n";
-    do_requests($xcb, %functions);
-    do_replies($xcb, %functions, %collectors);
-}
-
-# convenience functions
-print OUT <<eot
+    # convenience functions
+    print OUT <<eot
 int
 get_root_window(conn)
     XCBConnection *conn
@@ -765,9 +767,10 @@ flush(conn)
     xcb_flush(conn->conn);
 
 eot
-;
 
-close OUT;
+    close OUT;
+
+}
 
 # Copyright (C) 2009 Michael Stapelberg <michael at stapelberg dot de>
 # Copyright (C) 2007 Hummingbird Ltd. All Rights Reserved.
