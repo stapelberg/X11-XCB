@@ -31,7 +31,7 @@ my %xcbtype = (
     INT8 => 'int',
     INT16 => 'int',
     INT32 => 'int',
-    
+
     char => 'char',
     void => 'void',  # Hack, to partly support ChangeProperty, until we can reverse 'op'.
     float => 'double',
@@ -47,7 +47,7 @@ my %luatype = (
     INT8 => 'integer',
     INT16 => 'integer',
     INT32 => 'integer',
-    
+
     char => 'integer',
     void => 'integer',  # Hack, to partly support ChangeProperty, until we can reverse 'op'.
     float => 'number',
@@ -63,7 +63,7 @@ my %luachecktype = (
     INT8 => 'LUA_TNUMBER',
     INT16 => 'LUA_TNUMBER',
     INT32 => 'LUA_TNUMBER',
-    
+
     char => 'LUA_TNUMBER',
     void => 'LUA_TNIL',
     float => 'LUA_TNUMBER',
@@ -130,15 +130,15 @@ sub do_push($$;$)
     my $indent = ' ' x ((shift) * 4);
     my $type = shift;
     my $name = shift;
-    
+
     my $base;
-    
+
     if (defined($name)) {
     $base = "x->".cname($name);
     } else {
     $base = "i.data";
     }
-    
+
     if ($luatype{$type}) {
     # elemental type
     $base = '*'.$base if (!defined($name));
@@ -266,7 +266,7 @@ sub do_requests($\%)
 {
     my $xcb = shift;
     my $func = shift;
-    
+
     foreach my $req (@{$xcb->{'request'}}) {
     my $mangled = mangle($req->{name});
     my $stripped = $mangled;
@@ -379,7 +379,7 @@ sub do_requests($\%)
 #   print OUT "\n";
 
 
-    
+
     # Function call
     print OUT "    ";
     if (defined($req->{'reply'})) {
@@ -445,7 +445,7 @@ sub do_events($)
     my %events;
 
     # TODO: events
-    
+
 #    foreach my $event (@{$xcb->{'event'}}) {
 #   my $xcbev = mangle($event->{'name'})."_event_t";
 #   print OUT "/* This function adds the remaining fields into the table\n  that is on the top of the stack */\n";
@@ -461,11 +461,11 @@ sub do_events($)
 #   print OUT "}\n\n";
 #   $events{$event->{'number'}} = 'set_'.$event->{'name'};
 #    }
-#    
+#
 #    foreach my $event (@{$xcb->{'eventcopy'}}) {
 #   $events{$event->{'number'}} = 'set_'.$event->{'ref'};
 #    }
-#    
+#
 #    print OUT "static void init_events()\n{\n";
 #    foreach my $i (sort { $a <=> $b } keys %events) {
 #   print OUT "    RegisterEvent($i, $events{$i});\n";
@@ -779,7 +779,7 @@ eot
 
 # Copyright (C) 2009 Michael Stapelberg <michael at stapelberg dot de>
 # Copyright (C) 2007 Hummingbird Ltd. All Rights Reserved.
-# 
+#
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated
 # documentation files (the "Software"), to deal in the
@@ -788,11 +788,11 @@ eot
 # sublicense, and/or sell copies of the Software, and to
 # permit persons to whom the Software is furnished to do so,
 # subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall
 # be included in all copies or substantial portions of the
 # Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
 # KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
 # WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
@@ -801,7 +801,7 @@ eot
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
-# 
+#
 # Except as contained in this notice, the names of the authors
 # or their institutions shall not be used in advertising or
 # otherwise to promote the sale, use or other dealings in this
