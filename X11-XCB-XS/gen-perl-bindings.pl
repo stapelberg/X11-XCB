@@ -642,7 +642,7 @@ sub generate {
     print OUTTM "XCBConnection * T_PTROBJ\n";
     print OUTTM "intArray * T_ARRAY\n";
 
-    print OUT <<eot;
+    print OUT << 'eot';
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
@@ -652,13 +652,14 @@ sub generate {
 
 #include "ppport.h"
 eot
+
     for my $name (@files) {
         my $bname = basename($name);
         $bname =~ s/\.xml$//;
         print OUT qq|#include "$bname.typedefs"\n|;
     }
 
-    print OUT <<eot;
+    print OUT << 'eot';
 
 typedef struct my_xcb_conn XCBConnection;
 typedef int intArray;
@@ -677,7 +678,6 @@ BOOT:
 {
     HV *stash = gv_stashpvn("X11::XCB", strlen("X11::XCB"), TRUE);
 eot
-;
 
     for my $name (@files) {
         my $xcb = XMLin($name, KeyAttr => undef, ForceArray => 1);
@@ -690,7 +690,7 @@ eot
         do_enums($xcb);
     }
 
-    print OUT <<eot
+    print OUT << 'eot';
 }
 
 
@@ -711,8 +711,6 @@ new(class,displayname,screenp)
 
 
 eot
-    ;
-
 
     foreach my $name (@files) {
         my $path = $name;
@@ -742,7 +740,7 @@ eot
     }
 
     # convenience functions
-    print OUT <<eot
+    print OUT << 'eot';
 int
 get_root_window(conn)
     XCBConnection *conn
