@@ -9,6 +9,8 @@
 # Known warts:
 # - Should get string lengths (and other lengths) from Lua, instead of requiring the length to be passed from the script
 
+package _GenerateMyXS;
+
 use warnings;
 use strict;
 use autodie;
@@ -623,17 +625,20 @@ sub do_enums($)
 }
 
 sub generate {
-    my @files;
+    my ($path, @xcb_xmls) = @_;
+
+    -d $path or die "$path: $!\n";
 
     # TODO: Handle all .xmls
     #opendir(DIR, '.');
     #@files = grep { /\.xml$/ } readdir(DIR);
     #closedir DIR;
 
-    # TODO: use pkg-config
-        # pkg-config --variable=xcbincludedir xcb-proto
-    push @files, '/usr/share/xcb/xproto.xml';
-    push @files, '/usr/share/xcb/xinerama.xml';
+    my @files = map {
+            my $xml = "$path/$_";
+            -r $xml or die "$xml: $!\n";
+            $xml
+        } @xcb_xmls;
 
     open(OUT, ">XCB.xs");
     open(OUTTM, ">typemap");
@@ -769,6 +774,8 @@ eot
     close OUT;
 
 }
+
+'The One True Value';
 
 # Copyright (C) 2009 Michael Stapelberg <michael at stapelberg dot de>
 # Copyright (C) 2007 Hummingbird Ltd. All Rights Reserved.

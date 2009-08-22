@@ -9,8 +9,12 @@ requires_external_bin 'pkg-config';
 configure_requires 'XML::Simple' => '0.00';
 configure_requires 'List::Util'  => '0.00';
 configure_requires 'autodie'     => '0.00';
+configure_requires 'ExtUtils::PkgConfig' => '0.00';
 
 test_requires 'Test::More';
+
+requires 'Moose';
+requires 'MooseX::Singleton';
 
 use_test_base;
 
