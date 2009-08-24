@@ -11,14 +11,12 @@ use _GenerateMyXS;
 
 my $pc = 'ExtUtils::PkgConfig';
 
-# XXX specify minimum xcb-version
+# XXX check for minimum xcb-version (1.2)
 my %xcb = $pc->find('xcb');
+my %xcb_xinerama = $pc->find('xcb-xinerama');
 my $xml_path = $pc->variable('xcb-proto', 'xcbincludedir');
 
-# XXX do this always?!
-#unless (-e 'enums.list' and -s _) {
-	_GenerateMyXS::generate($xml_path, qw/xproto.xml xinerama.xml/);
-#}
+_GenerateMyXS::generate($xml_path, qw/xproto.xml xinerama.xml/);
 
 print "Loading enums.list...\n";
 my @enums = io("enums.list")->slurp;
@@ -40,7 +38,7 @@ ExtUtils::MakeMaker::WriteMakefile(
     ($] >= 5.005 ?     ## Add these new keywords supported since 5.005
       (ABSTRACT_FROM  => 'lib/X11/XCB.pm', # retrieve abstract from module
        AUTHOR         => 'Michael Stapelberg <michael@>') : ()),
-    LIBS              => [ "$xcb{libs} -lxcb-xinerama" ],
+    LIBS              => [ "$xcb{libs} $xcb_xinerama{libs}" ],
     DEFINE            => '', # e.g., '-DHAVE_SOMETHING'
-    INC               => "-I. $xcb{cflags}", # e.g., '-I. -I/usr/include/other'
+    INC               => "-I. $xcb{cflags} $xcb_xinerama{cflags}", # e.g., '-I. -I/usr/include/other'
 );
