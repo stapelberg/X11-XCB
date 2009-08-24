@@ -515,6 +515,8 @@ sub do_replies($\%\%)
         for my $list (@{$rep->[0]->{list}}) {
             my $listname = $list->{name};
             my $type = mangle($list->{type}) . '_t';
+            my $iterator = mangle($list->{type}) . '_iterator_t';
+            my $iterator_next = mangle($list->{type}) . '_next';
             my $pre = mangle($req->{name});
 
             # Get the type description of the list’s members
@@ -522,18 +524,24 @@ sub do_replies($\%\%)
 
             next unless defined($struct->{field}) && scalar(@{$struct->{field}}) > 0;
 
+            print "Doing: $pre _ $listname\n";
+            print "type = $type\n";
+            print Dumper($struct);
+
             print OUT "    {\n";
             print OUT "    /* Handling list part of the reply */\n";
             print OUT "    alist = newAV();\n";
-            print OUT "    $type *list = $pre" . '_' . "$listname(reply);\n";
-            print OUT "    for (c = 0; c < $pre" . '_' . "$listname" . "_length(reply); c++) {\n";
+            print OUT "    $iterator iterator = $pre" . '_' . $listname . "_iterator(reply);\n";
+            print OUT "    for (; iterator.rem > 0; $iterator_next(&iterator)) {\n";
+            print OUT "      $type *data = iterator.data;\n";
             print OUT "      inner_hash = newHV();\n";
+
             for my $field (@{$struct->{field}}) {
                 my $type = get_vartype($field->{type});
                 my $name = cname($field->{name});
 
                 if ($type eq 'int') {
-                    print OUT "      hv_store(inner_hash, \"$name\", strlen(\"$name\"), newSViv(list[c].$name), 0);\n";
+                    print OUT "      hv_store(inner_hash, \"$name\", strlen(\"$name\"), newSViv(data->$name), 0);\n";
                 } else {
                     print OUT "      /* TODO: type $type, name $name */\n";
                 }
