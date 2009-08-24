@@ -526,10 +526,6 @@ sub do_replies($\%\%)
 
             next unless defined($struct->{field}) && scalar(@{$struct->{field}}) > 0;
 
-            print "Doing: $pre _ $listname\n";
-            print "type = $type\n";
-            print Dumper($struct);
-
             print OUT "    {\n";
             print OUT "    /* Handling list part of the reply */\n";
             print OUT "    alist = newAV();\n";
