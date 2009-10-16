@@ -1,7 +1,7 @@
 # XXX workaround: don't re-import subs if called by toplevel Makefile.PL
 use ExtUtils::MakeMaker ();
-
-use strict; use warnings;
+use strict;
+use warnings;
 use ExtUtils::PkgConfig;
 
 use IO::All;
@@ -34,7 +34,15 @@ for my $line (@libfile) {
 ExtUtils::MakeMaker::WriteMakefile(
     NAME              => 'X11::XCB',
     VERSION_FROM      => 'lib/X11/XCB.pm', # finds $VERSION
-    PREREQ_PM         => {}, # e.g., Module::Name => 1.1
+    PREREQ_PM => {
+	    'XML::Simple' => '0.00',
+	    'List::Util' => '0.00',
+	    'autodie' => '0.00',
+	    'ExtUtils::PkgConfig' => '0.00',
+            'Test::More' => '0.00',
+            'Moose' => '0.00',
+            'MooseX::Singleton' => '0.00',
+    },
     ($] >= 5.005 ?     ## Add these new keywords supported since 5.005
       (ABSTRACT_FROM  => 'lib/X11/XCB.pm', # retrieve abstract from module
        AUTHOR         => 'Michael Stapelberg <michael@>') : ()),
