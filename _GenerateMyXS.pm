@@ -768,7 +768,8 @@ flush(conn)
 eot
 
     close OUT;
-
+    close OUTTM;
+    close OUTENUMS;
 }
 
 'The One True Value';
