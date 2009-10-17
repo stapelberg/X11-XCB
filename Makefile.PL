@@ -2,12 +2,25 @@
 use ExtUtils::MakeMaker ();
 use strict;
 use warnings;
+use autodie;
 use ExtUtils::PkgConfig;
-
-use IO::All;
+use IO::Handle;
 
 use lib '.';
 use _GenerateMyXS;
+
+# reads in a whole file
+sub slurp {
+	open my $fh, '<', shift;
+	local $/;
+	<$fh>;
+}
+
+# spits out a file
+sub spit {
+	open my $fh, '>', shift;
+	$fh->print($_) for @_;
+}
 
 my $pc = 'ExtUtils::PkgConfig';
 
@@ -19,15 +32,12 @@ my $xml_path = $pc->variable('xcb-proto', 'xcbincludedir');
 _GenerateMyXS::generate($xml_path, qw/xproto.xml xinerama.xml/);
 
 print "Loading enums.list...\n";
-my @enums = io("enums.list")->slurp;
-my $enums = join ' ', @enums;
+my $enums = slurp('enums.list');
 print "Replacing in lib/X11/XCB.pm.in\n";
-my @libfile = io("lib/X11/XCB.pm.in")->slurp;
-for my $line (@libfile) {
-        $line =~ s/^ENUMS_REPLACE_ME/qw($enums)/g and last;
-}
+my $libfile = slurp("lib/X11/XCB.pm.in");
+$libfile =~ s/ENUMS_REPLACE_ME/qw($enums)/g;
 
-(join '', @libfile) > io("lib/X11/XCB.pm");
+spit('lib/X11/XCB.pm', $libfile);
 
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
 # the contents of the Makefile that is written.
