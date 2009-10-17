@@ -2,6 +2,7 @@
 
 use Test::More tests => 4;
 use Test::Deep;
+use Time::HiRes qw(sleep);
 use X11::XCB qw(:all);
 use Data::Dumper;
 
@@ -11,8 +12,6 @@ BEGIN {
 }
 
 my $x = X11::XCB::Connection->new(display => ':0');
-
-my $original_rect = X11::XCB::Rect->new(x => 0, y => 0, width => 30, height => 30);
 
 my $root = $x->root;
 
@@ -24,12 +23,12 @@ ok('rect of the root window could be retrieved');
 
 my $window = $x->root->create_child(
 	class => WINDOW_CLASS_INPUT_OUTPUT,
-	rect => $original_rect,
+	rect => [0, 0, 30, 30],
 	background_color => '#C0C0C0',
 );
 
 $window->create;
 $window->map;
-sleep 1;
+sleep 0.25;
 
 diag( "Testing X11::XCB, Perl $], $^X" );
