@@ -1,28 +1,56 @@
 package X11::XCB::Connection;
-# singleton, because you usually only need one connection to X
 # passes all methods to the underlying XCBConnection.
 
-use MooseX::Singleton;
+use Moose;
 use X11::XCB qw(:all);
 use X11::XCB::Screen;
+use X11::XCB::Window;
+use List::Util qw(sum);
 
 has 'display' => (is => 'rw', isa => 'Str');
 has 'conn' => (is => 'rw', isa => 'XCBConnectionPtr', handles => qr/.*/);
 
-sub connect {
-    my $class = shift;
-    my $display = shift;
+sub BUILD {
+    my $self = shift;
 
     # TODO: do we need this one?
     my $screens;
-    my $conn = X11::XCB->new($display, $screens);
+    my $conn = X11::XCB->new($self->display, $screens);
 
-    X11::XCB::Connection->display($display);
-    X11::XCB::Connection->conn($conn);
+    $self->conn($conn);
+}
+
+sub atom {
+    my $self = shift;
+
+    return X11::XCB::Atom->new(_conn => $self->conn, @_);
+}
+
+sub color {
+    my $self = shift;
+
+    return X11::XCB::Color->new(_conn => $self->conn, @_);
+}
+
+sub root {
+    my $self = shift;
+
+    my $screens = $self->screens;
+    my $width = sum map { $_->rect->width } @{$screens};
+    my $height = sum map { $_->rect->height } @{$screens};
+
+    return X11::XCB::Window->new(
+        _conn => $self->conn,
+        _mapped => 1, # root window is always mapped
+        parent => 0,
+        id => $self->conn->get_root_window(),
+        rect => X11::XCB::Rect->new(x => 0, y => 0, width => $width, height => $height),
+        class => WINDOW_CLASS_INPUT_OUTPUT, # FIXME: is this correct for the root win?
+    );
 }
 
 sub input_focus {
-    my $class = shift;
+    my $self = shift;
 
     my $conn = X11::XCB::Connection->conn;
     my $cookie = $conn->get_input_focus();
@@ -37,9 +65,9 @@ Returns an arrayref of L<X11::XCB::Screen>s.
 
 =cut
 sub screens {
-    my $class = shift;
+    my $self = shift;
 
-    my $conn = X11::XCB::Connection->conn;
+    my $conn = $self->conn;
     my $cookie = $conn->xinerama_query_screens;
     my $screens = $conn->xinerama_query_screens_reply($cookie->{sequence});
     my @result;

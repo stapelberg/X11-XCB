@@ -10,12 +10,12 @@ BEGIN {
 	use_ok('X11::XCB::Color');
 }
 
-X11::XCB::Connection->connect(':0');
+my $x = X11::XCB::Connection->new(display => ':0');
 
-my $color = X11::XCB::Color->new(hexcode => 'C0C0C0');
+my $color = $x->color(hexcode => 'C0C0C0');
 is($color->pixel, 12632256, 'grey colorpixel matches');
 
-$color = X11::XCB::Color->new(hexcode => '#C0C0C0');
+$color = $x->color(hexcode => '#C0C0C0');
 is($color->pixel, 12632256, 'grey colorpixel matches with #');
 
 diag( "Testing X11::XCB, Perl $], $^X" );

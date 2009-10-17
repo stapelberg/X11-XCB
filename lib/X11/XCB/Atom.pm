@@ -8,7 +8,7 @@ use TryCatch;
 has 'name' => (is => 'ro', isa => 'Str', required => 1, trigger => \&_request);
 has 'id' => (is => 'ro', isa => 'Int', lazy_build => 1);
 has '_sequence' => (is => 'rw', isa => 'Int');
-has '_conn' => (is => 'ro', default => sub { X11::XCB::Connection->instance });
+has '_conn' => (is => 'ro', required => 1);
 has '_id' => (is => 'rw', isa => 'Int', default => undef);
 
 sub _build_id {

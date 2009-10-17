@@ -24,14 +24,15 @@ coerce 'X11::XCB::Atom'
     => via { X11::XCB::Atom->new(name => '_NET_WM_WINDOW_TYPE_' . uc($_)) };
 
 has 'class' => (is => 'ro', isa => 'Str', required => 1);
-has 'id' => (is => 'ro', isa => 'Int', init_arg => undef, lazy_build => 1);
+has 'id' => (is => 'ro', isa => 'Int', lazy_build => 1);
+has 'parent' => (is => 'ro', isa => 'Int', required => 1);
 has '_rect' => (is => 'ro', isa => 'X11::XCB::Rect', required => 1, init_arg => 'rect', coerce => 1);
 has 'type' => (is => 'rw', isa => 'X11::XCB::Atom', coerce => 1, trigger => \&_update_type);
 has 'override_redirect' => (is => 'ro', isa => 'Int', default => 0);
 has 'background_color' => (is => 'ro', isa => 'X11::XCB::Color', coerce => 1, default => undef);
 has 'name' => (is => 'rw', isa => 'Str', trigger => \&_update_name);
 has 'fullscreen' => (is => 'rw', isa => 'Int', trigger => \&_update_fullscreen);
-has '_conn' => (is => 'ro', default => sub { X11::XCB::Connection->instance });
+has '_conn' => (is => 'ro', required => 1);
 has '_mapped' => (is => 'rw', isa => 'Int', default => 0);
 has '_created' => (is => 'rw', isa => 'Int', default => 0);
 
@@ -75,7 +76,7 @@ sub rect {
         my $reply = $conn->query_tree_reply($cookie->{sequence});
 
         # If this is the root window, we stop here
-        last if ($reply->{root} == $reply->{parent});
+        last if ($reply->{root} == $reply->{parent}) or $reply->{parent} == 0;
 
         $last_id = $reply->{parent};
     }
@@ -99,7 +100,6 @@ sub rect {
 
 sub create {
     my $self = shift;
-    my $root_window = $self->_conn->get_root_window();
     my $mask = 0;
     my @values;
 
@@ -117,7 +117,7 @@ sub create {
     $self->_conn->create_window(
             WINDOW_CLASS_COPY_FROM_PARENT,
             $self->id,
-            $self->_conn->get_root_window(),
+            $self->parent,
             $self->_rect->x,
             $self->_rect->y,
             $self->_rect->width,
@@ -271,6 +271,16 @@ sub _update_type {
         pack('L', $self->type->id)
     );
     $self->_conn->flush;
+}
+
+sub create_child {
+    my $self = shift;
+
+    return X11::XCB::Window->new(
+        _conn => $self->_conn,
+        parent => $self->id,
+        @_,
+    );
 }
 
 1

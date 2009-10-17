@@ -9,7 +9,11 @@ coerce 'X11::XCB::Color'
 
 has 'hexcode' => (is => 'ro', isa => 'Str', required => 1);
 has 'pixel' => (is => 'ro', isa => 'Int', lazy_build => 1);
-has '_conn' => (is => 'ro', default => sub { X11::XCB::Connection->instance });
+has '_conn' => (is => 'ro');
+# FIXME: We need the X connection as soon as we implement more than a
+# truecolor. However, I don’t have an idea for getting the coercion to
+# work then.
+#, required => 1);
 
 =head2 pixel
 

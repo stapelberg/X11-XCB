@@ -10,10 +10,9 @@ BEGIN {
 	use_ok('X11::XCB::Screen');
 }
 
-X11::XCB::Connection->connect(':0');
+my $x = X11::XCB::Connection->new(display => ':0');
 
-my $conn = X11::XCB::Connection->instance;
-my $screens = $conn->screens;
+my $screens = $x->screens;
 my $first = first { 1 } @{$screens};
 isa_ok($first, 'X11::XCB::Screen');
 
