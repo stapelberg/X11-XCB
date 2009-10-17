@@ -10,7 +10,7 @@ BEGIN {
 	use_ok('X11::XCB::Screen');
 }
 
-my $x = X11::XCB::Connection->new(display => ':0');
+my $x = X11::XCB::Connection->new;
 
 my $screens = $x->screens;
 my $first = first { 1 } @{$screens};

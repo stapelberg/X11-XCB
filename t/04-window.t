@@ -11,7 +11,7 @@ BEGIN {
 	use_ok('X11::XCB::Window');
 }
 
-my $x = X11::XCB::Connection->new(display => ':0');
+my $x = X11::XCB::Connection->new;
 
 my $root = $x->root;
 

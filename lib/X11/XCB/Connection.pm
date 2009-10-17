@@ -7,7 +7,7 @@ use X11::XCB::Screen;
 use X11::XCB::Window;
 use List::Util qw(sum);
 
-has 'display' => (is => 'rw', isa => 'Str');
+has 'display' => (is => 'rw', isa => 'Str', default => '');
 has 'conn' => (is => 'rw', isa => 'XCBConnectionPtr', handles => qr/.*/);
 
 sub BUILD {

@@ -9,7 +9,7 @@ BEGIN {
 	use_ok('X11::XCB::Atom') or BAIL_OUT('Unable to load X11::XCB::Atom');
 }
 
-my $x = X11::XCB::Connection->new(display => ':0');
+my $x = X11::XCB::Connection->new;
 
 my $atom = $x->atom(name => '_NET_WM_STATE');
 

@@ -10,7 +10,7 @@ BEGIN {
 	use_ok('X11::XCB::Color');
 }
 
-my $x = X11::XCB::Connection->new(display => ':0');
+my $x = X11::XCB::Connection->new;
 
 my $color = $x->color(hexcode => 'C0C0C0');
 is($color->pixel, 12632256, 'grey colorpixel matches');
