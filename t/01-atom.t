@@ -2,9 +2,8 @@
 
 use Test::More tests => 9;
 use Test::Deep;
+use Test::Exception;
 use X11::XCB qw(:all);
-use Data::Dumper;
-use TryCatch;
 
 BEGIN {
 	use_ok('X11::XCB::Atom') or BAIL_OUT('Unable to load X11::XCB::Atom');
@@ -24,13 +23,7 @@ my $invalid = X11::XCB::Atom->new(name => 'this_atom_does_not_exist');
 isa_ok($invalid, 'X11::XCB::Atom');
 
 # This should crash
-try {
-	diag("id is = " . $invalid->id);
-	fail('Invalid atom returned an ID');
-}
-catch {
-	ok('Invalid atom die()d');
-}
+throws_ok { $invalid->id } qr/No such atom/, 'Invalid atom die()d';
 
 ok(!$invalid->exists, 'Invalid atom does not exist');
 
