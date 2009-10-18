@@ -20,18 +20,34 @@ sub BUILD {
     $self->conn($conn);
 }
 
+=head2 atom
+
+Returns a new C<X11::XCB::Atom> assigned to this connection.
+
+=cut
 sub atom {
     my $self = shift;
 
     return X11::XCB::Atom->new(_conn => $self->conn, @_);
 }
 
+=head2 color
+
+Returns a new C<X11::XCB::Color> assigned to this connection.
+
+=cut
 sub color {
     my $self = shift;
 
     return X11::XCB::Color->new(_conn => $self->conn, @_);
 }
 
+
+=head2 root
+
+Returns a new C<X11::XCB::Window> representing the X11 root window.
+
+=cut
 sub root {
     my $self = shift;
 
@@ -49,6 +65,11 @@ sub root {
     );
 }
 
+=head2 input_focus
+
+Returns the X11 input focus (a window ID).
+
+=cut
 sub input_focus {
     my $self = shift;
 

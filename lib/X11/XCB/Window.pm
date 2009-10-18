@@ -134,6 +134,11 @@ sub _create {
     $self->_update_type if (defined($self->type));
 }
 
+=head2 attributes
+
+Returns the X11 attributes of this window.
+
+=cut
 sub attributes {
     my $self = shift;
     my $conn = $self->_conn;
@@ -144,6 +149,11 @@ sub attributes {
     return $attributes;
 }
 
+=head2 map
+
+Maps the window on the screen, that is, makes it visible.
+
+=cut
 sub map {
     my $self = shift;
 
@@ -154,6 +164,11 @@ sub map {
     $self->_mapped(1);
 }
 
+=head2 unmap
+
+The opposite of L<map>, that is, makes your window invisible.
+
+=cut
 sub unmap {
     my $self = shift;
 
@@ -162,6 +177,12 @@ sub unmap {
     $self->_mapped(1);
 }
 
+=head2 mapped
+
+Returns whether the window is actually mapped (no internal state, but gets
+the window attributes from X11 and checks for MAP_STATE_VIEWABLE).
+
+=cut
 sub mapped {
     my $self = shift;
 
@@ -274,6 +295,11 @@ sub _update_type {
     $self->_conn->flush;
 }
 
+=head2 create_child(options)
+
+Creates a new C<X11::XCB::Window> as a child window of the current window.
+
+=cut
 sub create_child {
     my $self = shift;
 

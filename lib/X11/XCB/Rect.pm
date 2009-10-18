@@ -1,3 +1,19 @@
+=head1 NAME
+
+X11::XCB::Rect - represents a rectangle
+
+=head1 SYNOPSIS
+
+  my $rect = X11::XCB::Rect->new(x => 0, y => 0, width => 300, height => 400);
+
+But in most cases, you should be able to coerce a rect from an arrayref:
+
+  my $window = $x->root->create_child(
+    rect => [0, 0, 300, 300],
+    class => WINDOW_CLASS_INPUT_OUTPUT,
+  );
+
+=cut
 package X11::XCB::Rect;
 
 use Moose;
