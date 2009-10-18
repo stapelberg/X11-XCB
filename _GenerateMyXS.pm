@@ -22,6 +22,14 @@ use XML::Simple qw(:strict);
 
 my $prefix = 'xcb_';
 
+# In contrary to %xcbtype, which only holds basic data types like 'int', 'char'
+# and so on, the %exacttype hash holds the real type name, like INT16 or CARD32
+# for any type which has been specified in the XML definition. For example,
+# type KEYCODE is an alias for CARD32. This is necessary later on to correctly
+# typecast our intArray type.
+my %exacttype = (
+);
+
 my %xcbtype = (
     BOOL => 'int',
     BYTE => 'int',
@@ -242,6 +250,7 @@ sub do_typedefs($)
     $xcbtype{$tdef->{'newname'}} = $xcbtype{$tdef->{'oldname'}};
     $luatype{$tdef->{'newname'}} = $luatype{$tdef->{'oldname'}};
     $luachecktype{$tdef->{'newname'}} = $luachecktype{$tdef->{'oldname'}};
+    $exacttype{$tdef->{newname}} = $tdef->{oldname};
     }
     foreach my $tdef (@{$xcb->{'xidtype'}}) {
     $xcbtype{$tdef->{'name'}} = $xcbtype{'CARD32'};
@@ -396,6 +405,14 @@ sub do_requests($\%)
         if (!defined($var->{'fieldref'}) && !defined($var->{'op'}) && !defined($var->{'value'})) {
             $glob .= $var->{'name'}.'_len';
             $glob .= ", ";
+        }
+        my $type = $var->{type};
+        $type = $exacttype{$type} if (defined($exacttype{$type}));
+        if ((my $type_name, my $int_len) = ($type =~ /(INT|CARD)(8|16|32)/)) {
+            $glob .= " (const uint" . $int_len . "_t*)";
+        }
+        if ($var->{type} eq 'BYTE') {
+            $glob .= " (const uint8_t*)";
         }
         $glob .= $var->{'name'};
         $glob .= ", ";
