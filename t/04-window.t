@@ -27,7 +27,6 @@ my $window = $x->root->create_child(
 	background_color => '#C0C0C0',
 );
 
-$window->create;
 $window->map;
 sleep 0.25;
 

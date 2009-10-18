@@ -98,7 +98,7 @@ sub rect {
     return wantarray ? ($absolute, X11::XCB::Rect->new($parent_geometry)) : $absolute;
 }
 
-sub create {
+sub _create {
     my $self = shift;
     my $mask = 0;
     my @values;
@@ -146,6 +146,8 @@ sub attributes {
 
 sub map {
     my $self = shift;
+
+    $self->_create unless ($self->_created);
 
     $self->_conn->map_window($self->id);
     $self->_conn->flush;
@@ -196,8 +198,7 @@ sub _update_fullscreen {
     my $conn = $self->_conn;
     my $atomname = X11::XCB::Atom->new(name => '_NET_WM_STATE');
 
-    die "Cannot change fullscreen property unless you create the window"
-        unless ($self->_created);
+    $self->_create unless ($self->_created);
 
     # If we’re already mapped, we have to send a client message to the root
     # window containing our request to change the _NET_WM_STATE atom.
