@@ -16,6 +16,7 @@ sub BUILD {
     # TODO: do we need this one?
     my $screens;
     my $conn = X11::XCB->new($self->display, $screens);
+    die "Could not connect to X11" if ($conn->has_error);
 
     $self->conn($conn);
 }
