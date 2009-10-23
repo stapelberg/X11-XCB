@@ -727,6 +727,15 @@ new(class,displayname,screenp)
     screenp
     RETVAL
 
+MODULE = X11::XCB PACKAGE = XCBConnectionPtr
+
+int
+has_error(self)
+    XCBConnection * self
+  CODE:
+    RETVAL = xcb_connection_has_error(self->conn);
+  OUTPUT:
+    RETVAL
 
 eot
 
