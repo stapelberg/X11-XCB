@@ -3,7 +3,7 @@ package X11::XCB::Atom;
 use Moose;
 use X11::XCB::Connection;
 use Carp;
-use TryCatch;
+use Try::Tiny;
 
 has 'name' => (is => 'ro', isa => 'Str', required => 1, trigger => \&_request);
 has 'id' => (is => 'ro', isa => 'Int', lazy_build => 1);
@@ -52,14 +52,16 @@ likely, as id() dies if the atom does not exist.
 =cut
 sub exists {
     my $self = shift;
+    my $result = 0;
 
     try {
         # Try to access the ID. If this fails, the provided name was invalid
         $self->id;
-        return 1;
-    }
-    catch {
-    }
+        $result = 1;
+    } catch {
+    };
+
+    return $result;
 }
 
 1
