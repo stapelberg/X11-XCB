@@ -1,4 +1,5 @@
 #!perl
+# vim:ts=4:sw=4:expandtab
 
 use Test::More tests => 4;
 use Test::Deep;
@@ -10,12 +11,18 @@ BEGIN {
 	use_ok('X11::XCB::Color');
 }
 
-my $x = X11::XCB::Connection->new;
+my $x;
 
-my $color = $x->color(hexcode => 'C0C0C0');
-is($color->pixel, 12632256, 'grey colorpixel matches');
+SKIP: {
+    eval { $x = X11::XCB::Connection->new; };
 
-$color = $x->color(hexcode => '#C0C0C0');
-is($color->pixel, 12632256, 'grey colorpixel matches with #');
+    skip "Could not setup X11 connection", 2 if $@;
+
+    my $color = $x->color(hexcode => 'C0C0C0');
+    is($color->pixel, 12632256, 'grey colorpixel matches');
+
+    $color = $x->color(hexcode => '#C0C0C0');
+    is($color->pixel, 12632256, 'grey colorpixel matches with #');
+}
 
 diag( "Testing X11::XCB, Perl $], $^X" );
