@@ -36,9 +36,10 @@ configure_requires 'autodie'     => '0.00';
 configure_requires 'ExtUtils::PkgConfig' => '0.00';
 
 test_requires 'Test::More';
+test_requires 'Test::Deep';
 
 requires 'Moose';
-requires 'MooseX::Singleton';
+requires 'Try::Tiny';
 
 use_test_base;
 
