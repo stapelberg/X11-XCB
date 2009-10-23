@@ -22,6 +22,7 @@ sub spit {
 
 
 name 'X11-XCB';
+all_from 'lib/X11/XCB.pm.in';
 
 # we need pkg-config to find xcb-proto when generating XS
 requires_external_bin 'pkg-config';
