@@ -27,6 +27,8 @@ all_from 'lib/X11/XCB.pm.in';
 # we need pkg-config to find xcb-proto when generating XS
 requires_external_bin 'pkg-config';
 
+cc_append_to_libs qw(xcb xcb-xinerama);
+
 # needed for the XS-autogeneration
 configure_requires 'XML::Simple' => '0.00';
 configure_requires 'List::Util'  => '0.00';
