@@ -57,7 +57,7 @@ sub root {
     my $height = sum map { $_->rect->height } @{$screens};
 
     return X11::XCB::Window->new(
-        _conn => $self->conn,
+        _conn => $self,
         _mapped => 1, # root window is always mapped
         parent => 0,
         id => $self->conn->get_root_window(),
