@@ -74,9 +74,8 @@ Returns the X11 input focus (a window ID).
 sub input_focus {
     my $self = shift;
 
-    my $conn = X11::XCB::Connection->conn;
-    my $cookie = $conn->get_input_focus();
-    my $reply = $conn->get_input_focus_reply($cookie->{sequence});
+    my $cookie = $self->get_input_focus();
+    my $reply = $self->get_input_focus_reply($cookie->{sequence});
 
     return $reply->{focus};
 }
