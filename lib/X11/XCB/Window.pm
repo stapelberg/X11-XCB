@@ -195,8 +195,9 @@ sub mapped {
 
 sub _update_name {
     my $self = shift;
-    my $atomname = X11::XCB::Atom->new(name => '_NET_WM_NAME');
-    my $atomtype = X11::XCB::Atom->new(name => 'UTF8_STRING');
+    my $conn = $self->_conn;
+    my $atomname = $conn->atom(name => '_NET_WM_NAME');
+    my $atomtype = $conn->atom(name => 'UTF8_STRING');
     my $strlen;
 
     # Disable UTF8 mode to get the raw amount of bytes in this string
@@ -217,7 +218,7 @@ sub _update_name {
 sub _update_fullscreen {
     my $self = shift;
     my $conn = $self->_conn;
-    my $atomname = X11::XCB::Atom->new(name => '_NET_WM_STATE');
+    my $atomname = $conn->atom(name => '_NET_WM_STATE');
 
     $self->_create unless ($self->_created);
 
@@ -241,7 +242,7 @@ sub _update_fullscreen {
                 $event{window},
                 $event{type},
                 _NET_WM_STATE_TOGGLE,
-                X11::XCB::Atom->new(name => '_NET_WM_STATE_FULLSCREEN')->id,
+                $conn->atom(name => '_NET_WM_STATE_FULLSCREEN')->id,
                 0,
                 1, # normal application
         );
@@ -253,11 +254,11 @@ sub _update_fullscreen {
                 $packed
         );
     } else {
-        my $atomtype = X11::XCB::Atom->new(name => 'ATOM');
+        my $atomtype = $conn->atom(name => 'ATOM');
         my $atoms;
         if ($self->fullscreen) {
             print "getting fs atom\n";
-            my $atom = X11::XCB::Atom->new(name => '_NET_WM_STATE_FULLSCREEN');
+            my $atom = $conn->atom(name => '_NET_WM_STATE_FULLSCREEN');
             $atoms = pack('L', $atom->id);
         }
 
@@ -277,8 +278,9 @@ sub _update_fullscreen {
 
 sub _update_type {
     my $self = shift;
-    my $atomname = X11::XCB::Atom->new(name => '_NET_WM_WINDOW_TYPE');
-    my $atomtype = X11::XCB::Atom->new(name => 'ATOM');
+    my $conn = $self->_conn;
+    my $atomname = $conn->atom(name => '_NET_WM_WINDOW_TYPE');
+    my $atomtype = $conn->atom(name => 'ATOM');
 
     # If we are not mapped, this property will be set when creating the window
     return unless ($self->_created);
