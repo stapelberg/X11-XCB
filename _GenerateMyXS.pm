@@ -20,6 +20,14 @@ use List::Util qw(first);
 
 use XML::Simple qw(:strict);
 
+# reads in a whole file
+sub slurp {
+	open my $fh, '<', shift;
+	local $/;
+	<$fh>;
+}
+
+
 my $prefix = 'xcb_';
 
 # In contrary to %xcbtype, which only holds basic data types like 'int', 'char'
@@ -659,6 +667,7 @@ sub generate {
 
     print OUTTM "XCBConnection * T_PTROBJ\n";
     print OUTTM "intArray * T_ARRAY\n";
+    print OUTTM "X11_XCB_ICCCM_WMHints * T_PTROBJ\n";
 
     print OUT << 'eot';
 #include "EXTERN.h"
@@ -666,6 +675,7 @@ sub generate {
 #include "XSUB.h"
 #include <xcb/xcb.h>
 #include <xcb/xinerama.h>
+#include <xcb/xcb_icccm.h>
 #include "wrapper.h"
 
 #include "ppport.h"
@@ -680,6 +690,7 @@ eot
     print OUT << 'eot';
 
 typedef struct my_xcb_conn XCBConnection;
+typedef xcb_wm_hints_t X11_XCB_ICCCM_WMHints;
 typedef int intArray;
 
 intArray *intArrayPtr(int num) {
@@ -689,6 +700,12 @@ intArray *intArrayPtr(int num) {
 
         return array;
 }
+eot
+
+    my $ext = slurp('XCB_util.inc');
+    print OUT $ext;
+
+    print OUT << 'eot';
 
 MODULE = X11::XCB PACKAGE = X11::XCB
 

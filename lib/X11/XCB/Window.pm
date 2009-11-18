@@ -8,6 +8,7 @@ use X11::XCB::Atom;
 use X11::XCB::Color;
 use X11::XCB qw(:all);
 use Data::Dumper;
+use v5.10;
 
 # A valid window type is every string, which, appended to _NET_WM_WINDOW_TYPE_
 # returns an existing atom.
@@ -32,6 +33,7 @@ has 'override_redirect' => (is => 'ro', isa => 'Int', default => 0);
 has 'background_color' => (is => 'ro', isa => 'X11::XCB::Color', coerce => 1, default => undef);
 has 'name' => (is => 'rw', isa => 'Str', trigger => \&_update_name);
 has 'fullscreen' => (is => 'rw', isa => 'Int', trigger => \&_update_fullscreen);
+has '_hints' => (is => 'rw', isa => 'ArrayRef', default => sub { [ ] });
 has '_conn' => (is => 'ro', required => 1);
 has '_mapped' => (is => 'rw', isa => 'Int', default => 0);
 has '_created' => (is => 'rw', isa => 'Int', default => 0);
@@ -310,6 +312,51 @@ sub create_child {
         parent => $self->id,
         @_,
     );
+}
+
+=head2 add_hint($hint)
+
+Adds the given C<$hint> (one of "urgency") to the window’s set of hints.
+
+=cut
+sub add_hint {
+    my ($self, $hint) = @_;
+
+    # check if $self->_hints contains the hint already, then do nothing
+    return if ($self->_hints ~~ $hint);
+
+    # else add the hint to array
+    push @{$self->_hints}, $hint;
+
+    $self->_update_hints;
+}
+
+=head2 delete_hint($hint)
+
+Opposite of L<add_hint>.
+
+=cut
+sub delete_hint {
+    my ($self, $hint) = @_;
+
+    @{$self->_hints} = grep { !/$hint/ } @{$self->_hints};
+
+    $self->_update_hints;
+}
+
+sub _update_hints {
+    my ($self) = @_;
+
+    my $hints = X11::XCB::ICCCM::WMHints->new;
+
+    for my $hint (@{$self->_hints}) {
+        if ($hint eq 'urgency') {
+            $hints->set_urgency();
+        }
+    }
+
+    X11::XCB::ICCCM::set_wm_hints($self->_conn->conn, $self->id, $hints);
+    $self->_conn->flush;
 }
 
 1

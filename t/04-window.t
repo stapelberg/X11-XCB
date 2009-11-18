@@ -35,6 +35,11 @@ SKIP: {
 
     $window->map;
     sleep 0.25;
+
+    $window->add_hint('urgency');
+    sleep 1;
+    $window->delete_hint('urgency');
+    sleep 1;
 }
 
 diag( "Testing X11::XCB, Perl $], $^X" );
