@@ -61,11 +61,24 @@ containing this window but the first one under the root window in hierarchy).
 =cut
 sub rect {
     my $self = shift;
+    my $conn = $self->_conn;
+
+    my $arg = shift;
+
+    if ($arg) {
+        # Set the given geometry
+        my $mask = CONFIG_WINDOW_X |
+                   CONFIG_WINDOW_Y |
+                   CONFIG_WINDOW_WIDTH |
+                   CONFIG_WINDOW_HEIGHT;
+        my @values = ($arg->x, $arg->y, $arg->width, $arg->height);
+        $conn->configure_window($self->id, $mask, @values);
+        $conn->flush;
+        return;
+    }
 
     # Return the planned geometry if we’re not yet mapped
     return $self->_rect unless $self->_mapped;
-
-    my $conn = $self->_conn;
 
     # Get the relative geometry
     my $cookie = $conn->get_geometry($self->id);
