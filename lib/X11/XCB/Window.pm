@@ -29,6 +29,8 @@ has 'id' => (is => 'ro', isa => 'Int', lazy_build => 1);
 has 'parent' => (is => 'ro', isa => 'Int', required => 1);
 has '_rect' => (is => 'ro', isa => 'X11::XCB::Rect', required => 1, init_arg => 'rect', coerce => 1);
 has 'type' => (is => 'rw', isa => 'X11::XCB::Atom', coerce => 1, trigger => \&_update_type);
+has 'transient_for' => (is => 'rw', isa => 'X11::XCB::Window', trigger => \&_update_transient_for);
+has 'client_leader' => (is => 'rw', isa => 'X11::XCB::Window', trigger => \&_update_client_leader);
 has 'override_redirect' => (is => 'ro', isa => 'Int', default => 0);
 has 'background_color' => (is => 'ro', isa => 'X11::XCB::Color', coerce => 1, default => undef);
 has 'name' => (is => 'rw', isa => 'Str', trigger => \&_update_name);
@@ -146,7 +148,10 @@ sub _create {
 
     $self->_created(1);
 
-    $self->_update_type if (defined($self->type));
+    $self->_update_type if defined($self->type);
+    $self->_update_name if defined($self->type);
+    $self->_update_transient_for if defined($self->transient_for);
+    $self->_update_client_leader if defined($self->client_leader);
 }
 
 =head2 attributes
@@ -308,6 +313,48 @@ sub _update_type {
         32,         # 32 bit integer
         1,
         pack('L', $self->type->id)
+    );
+    $self->_conn->flush;
+}
+
+sub _update_transient_for {
+    my $self = shift;
+    my $conn = $self->_conn;
+    my $atomname = $conn->atom(name => 'WM_TRANSIENT_FOR');
+    my $atomtype = $conn->atom(name => 'WINDOW');
+
+    # If we are not mapped, this property will be set when creating the window
+    return unless ($self->_created);
+
+    $self->_conn->change_property(
+        PROP_MODE_REPLACE,
+        $self->id,
+        $atomname->id,
+        $atomtype->id,
+        32,         # 32 bit integer
+        1,
+        pack('L', $self->transient_for)
+    );
+    $self->_conn->flush;
+}
+
+sub _update_client_leader {
+    my $self = shift;
+    my $conn = $self->_conn;
+    my $atomname = $conn->atom(name => 'WM_CLIENT_LEADER');
+    my $atomtype = $conn->atom(name => 'WINDOW');
+
+    # If we are not mapped, this property will be set when creating the window
+    return unless ($self->_created);
+
+    $self->_conn->change_property(
+        PROP_MODE_REPLACE,
+        $self->id,
+        $atomname->id,
+        $atomtype->id,
+        32,         # 32 bit integer
+        1,
+        pack('L', $self->client_leader)
     );
     $self->_conn->flush;
 }
