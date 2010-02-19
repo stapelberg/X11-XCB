@@ -149,7 +149,7 @@ sub _create {
     $self->_created(1);
 
     $self->_update_type if defined($self->type);
-    $self->_update_name if defined($self->type);
+    $self->_update_name if defined($self->name);
     $self->_update_transient_for if defined($self->transient_for);
     $self->_update_client_leader if defined($self->client_leader);
 }
