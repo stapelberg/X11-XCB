@@ -354,7 +354,7 @@ sub _update_client_leader {
         $atomtype->id,
         32,         # 32 bit integer
         1,
-        pack('L', $self->client_leader)
+        pack('L', $self->client_leader->id)
     );
     $self->_conn->flush;
 }
