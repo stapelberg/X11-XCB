@@ -1,3 +1,4 @@
+# requires Module::Install::XSUtil
 use inc::Module::Install;
 use FileHandle;
 use IO::Handle;
