@@ -277,7 +277,6 @@ sub _update_fullscreen {
         my $atomtype = $conn->atom(name => 'ATOM');
         my $atoms;
         if ($self->fullscreen) {
-            print "getting fs atom\n";
             my $atom = $conn->atom(name => '_NET_WM_STATE_FULLSCREEN');
             $atoms = pack('L', $atom->id);
         }
