@@ -91,6 +91,14 @@ sub screens {
     my $conn = $self->conn;
     my $cookie = $conn->xinerama_query_screens;
     my $screens = $conn->xinerama_query_screens_reply($cookie->{sequence});
+
+    # If Xinerama is not available, fall back to the X root window dimensions
+    if (@{$screens->{screen_info}} == 0) {
+        my $cookie = $conn->get_geometry($self->get_root_window());
+        my $geom = $conn->get_geometry_reply($cookie->{sequence});
+        return [ X11::XCB::Screen->new(rect => X11::XCB::Rect->new($geom)) ];
+    }
+
     my @result;
     for my $geom (@{$screens->{screen_info}}) {
         my $rect = X11::XCB::Rect->new(
