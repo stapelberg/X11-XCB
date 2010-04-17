@@ -261,7 +261,7 @@ sub _update_fullscreen {
                 $event{sequence},
                 $event{window},
                 $event{type},
-                _NET_WM_STATE_TOGGLE,
+                ($self->fullscreen ? _NET_WM_STATE_ADD : _NET_WM_STATE_REMOVE),
                 $conn->atom(name => '_NET_WM_STATE_FULLSCREEN')->id,
                 0,
                 1, # normal application
