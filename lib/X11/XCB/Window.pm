@@ -418,5 +418,31 @@ sub _update_hints {
     $self->_conn->flush;
 }
 
+=head2 warp_pointer($x, $y)
+
+Moves the pointer to the offsets ($x, $y) relative to the origin of the
+window on which it is called. If $x and $y are undef, moves the pointer
+into the center of the window.
+
+=cut
+sub warp_pointer {
+    my ($self, $x, $y) = @_;
+
+    # If no coordinates were given, we warp the pointer into the center
+    if (!defined($x) and !defined($y)) {
+        my $rect = $self->rect;
+        $x = $rect->{width} / 2;
+        $y = $rect->{height} / 2;
+    }
+
+    # If just one coordinate was undef, we use 0
+    $x ||= 0;
+    $y ||= 0;
+
+    # TODO: s/0/XCB_NONE
+    $self->_conn->warp_pointer(0, $self->id, 0, 0, 0, 0, $x, $y);
+    $self->_conn->flush;
+}
+
 1
 # vim:ts=4:sw=4:expandtab
