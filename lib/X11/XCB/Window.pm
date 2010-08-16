@@ -28,7 +28,7 @@ has 'class' => (is => 'ro', isa => 'Str', required => 1);
 has 'id' => (is => 'ro', isa => 'Int', lazy_build => 1);
 has 'parent' => (is => 'ro', isa => 'Int', required => 1);
 has '_rect' => (is => 'ro', isa => 'X11::XCB::Rect', required => 1, init_arg => 'rect', coerce => 1);
-has 'type' => (is => 'rw', isa => 'X11::XCB::Atom', coerce => 1, trigger => \&_update_type);
+has 'window_type' => (is => 'rw', isa => 'X11::XCB::Atom', coerce => 1, trigger => \&_update_type);
 has 'transient_for' => (is => 'rw', isa => 'X11::XCB::Window', trigger => \&_update_transient_for);
 has 'client_leader' => (is => 'rw', isa => 'X11::XCB::Window', trigger => \&_update_client_leader);
 has 'override_redirect' => (is => 'ro', isa => 'Int', default => 0);
@@ -148,7 +148,7 @@ sub _create {
 
     $self->_created(1);
 
-    $self->_update_type if defined($self->type);
+    $self->_update_type if defined($self->window_type);
     $self->_update_name if defined($self->name);
     $self->_update_transient_for if defined($self->transient_for);
     $self->_update_client_leader if defined($self->client_leader);
@@ -311,7 +311,7 @@ sub _update_type {
         $atomtype->id,
         32,         # 32 bit integer
         1,
-        pack('L', $self->type->id)
+        pack('L', $self->window_type->id)
     );
     $self->_conn->flush;
 }
