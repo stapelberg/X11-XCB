@@ -1,0 +1,11 @@
+MANIFEST
+MANIFEST.bak
+META.yml
+Makefile
+Makefile.old
+XCB.xs
+XCB.c
+enums.list
+typemap
+xinerama.typedefs
+xproto.typedefs
