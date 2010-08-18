@@ -1,0 +1,12 @@
+^blib
+^debian/
+^\.git/
+\.o$
+\.bak$
+^XCB.xs$
+^lib/X11/XCB.pm$
+^Makefile$
+^t/pod-coverage.t$
+\.typedefs$
+^typemap$
+^X11-XCB-*
