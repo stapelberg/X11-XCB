@@ -663,6 +663,7 @@ sub generate {
     print OUTTM "XCBConnection * T_PTROBJ\n";
     print OUTTM "intArray * T_ARRAY\n";
     print OUTTM "X11_XCB_ICCCM_WMHints * T_PTROBJ\n";
+    print OUTTM "X11_XCB_ICCCM_SizeHints * T_PTROBJ\n";
 
     print OUT << 'eot';
 #include "EXTERN.h"
@@ -686,6 +687,7 @@ eot
 
 typedef struct my_xcb_conn XCBConnection;
 typedef xcb_wm_hints_t X11_XCB_ICCCM_WMHints;
+typedef xcb_size_hints_t X11_XCB_ICCCM_SizeHints;
 typedef int intArray;
 
 intArray *intArrayPtr(int num) {
