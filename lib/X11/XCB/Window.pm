@@ -340,7 +340,7 @@ sub _update_transient_for {
         $atomtype->id,
         32,         # 32 bit integer
         1,
-        pack('L', $self->transient_for)
+        pack('L', $self->transient_for->id)
     );
     $self->_conn->flush;
 }
