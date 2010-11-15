@@ -43,6 +43,12 @@ sub _request {
     $self->_sequence($request->{sequence});
 }
 
+=head1 NAME
+
+X11::XCB::Atom - wraps an X11 atom
+
+=head1 METHODS
+
 =head2 exists
 
 Returns whether this atom actually exists. If the id of the atom has not been

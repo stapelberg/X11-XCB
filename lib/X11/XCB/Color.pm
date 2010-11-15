@@ -15,6 +15,12 @@ has '_conn' => (is => 'ro');
 # work then.
 #, required => 1);
 
+=head1 NAME
+
+X11::XCB::Color - X11 colorpixel handling
+
+=head1 METHODS
+
 =head2 pixel
 
 Returns the colorpixel (think of an ID) of this color. Works with TrueColor

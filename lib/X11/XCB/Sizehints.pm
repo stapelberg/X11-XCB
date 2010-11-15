@@ -23,5 +23,13 @@ sub _update_aspect {
     X11::XCB::ICCCM::set_wm_size_hints($self->_conn->conn, $self->window, ATOM_WM_NORMAL_HINTS, $hints);
 }
 
+=head1 NAME
+
+X11::XCB::Sizehints - size hints attribute for an X11::XCB::Window
+
+=head1 METHODS
+
+=cut
+
 1
 # vim:ts=4:sw=4:expandtab

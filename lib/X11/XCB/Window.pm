@@ -54,6 +54,12 @@ sub _build_hints {
     return X11::XCB::Sizehints->new(_conn => $self->_conn, window => $self->id);
 }
 
+=head1 NAME
+
+X11::XCB::Window - represents an X11 window
+
+=head1 METHODS
+
 =head2 rect
 
 As long as the window is not mapped, this returns the planned geometry. As soon

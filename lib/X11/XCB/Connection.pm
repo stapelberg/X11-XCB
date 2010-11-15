@@ -21,6 +21,12 @@ sub BUILD {
     $self->conn($conn);
 }
 
+=head1 NAME
+
+X11::XCB::Connection - connection to the X server
+
+=head1 METHODS
+
 =head2 atom
 
 Returns a new C<X11::XCB::Atom> assigned to this connection.
