@@ -18,7 +18,7 @@ SKIP: {
 
     skip "Could not setup X11 connection", 8 if $@;
 
-    my $atom = $x->atom(name => '_NET_WM_STATE');
+    my $atom = $x->atom(name => 'PRIMARY');
 
     isa_ok($atom, 'X11::XCB::Atom');
 
