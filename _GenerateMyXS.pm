@@ -515,6 +515,7 @@ sub do_replies($\%\%)
         print OUT "    HV * inner_hash;\n";
         print OUT "    AV * alist;\n";
         print OUT "    int c;\n";
+        print OUT "    int _len;\n";
         print OUT "    $cookie cookie;\n";
         print OUT "    $reply *reply;\n";
         print OUT "  CODE:\n";
@@ -540,6 +541,14 @@ sub do_replies($\%\%)
             my $iterator = mangle($list->{type}) . '_iterator_t';
             my $iterator_next = mangle($list->{type}) . '_next';
             my $pre = mangle($req->{name});
+
+            if ($list->{type} eq 'void') {
+                # A byte-array. Provide it as SV.
+                print OUT "    _len = reply->value_len * (reply->format / 8);\n";
+                print OUT "    if (_len > 0)\n";
+                print OUT "        hv_store(hash, \"value\", strlen(\"value\"), newSVpvn((const char*)(reply + 1), _len), 0);\n";
+                next;
+            }
 
             # Get the type description of the list’s members
             my $struct = first { $_->{name} eq $list->{type} } @{$xcb->{struct}};
