@@ -40,6 +40,7 @@ configure_requires 'ExtUtils::PkgConfig' => '0.00';
 
 test_requires 'Test::More';
 test_requires 'Test::Deep';
+test_requires 'Test::Exception';
 
 requires 'Moose';
 requires 'Try::Tiny';
