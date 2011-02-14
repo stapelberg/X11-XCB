@@ -9,14 +9,14 @@ has 'name' => (is => 'ro', isa => 'Str', required => 1, trigger => \&_request);
 has 'id' => (is => 'ro', isa => 'Int', lazy_build => 1);
 has '_sequence' => (is => 'rw', isa => 'Int');
 has '_conn' => (is => 'ro', required => 1);
-has '_id' => (is => 'rw', isa => 'Int', default => undef);
+has '_id' => (is => 'rw', isa => 'Int', predicate => '_has_id');
 
 sub _build_id {
     my $self = shift;
     my $id;
 
     # If we have already gotten our reply, we use it again
-    if (defined($self->_id)) {
+    if ($self->_has_id) {
         $id = $self->_id;
     } else {
         $id = $self->_conn->intern_atom_reply($self->_sequence)->{atom};

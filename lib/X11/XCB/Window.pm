@@ -33,7 +33,7 @@ has 'window_type' => (is => 'rw', isa => 'X11::XCB::Atom', coerce => 1, trigger 
 has 'transient_for' => (is => 'rw', isa => 'X11::XCB::Window', trigger => \&_update_transient_for);
 has 'client_leader' => (is => 'rw', isa => 'X11::XCB::Window', trigger => \&_update_client_leader);
 has 'override_redirect' => (is => 'ro', isa => 'Int', default => 0);
-has 'background_color' => (is => 'ro', isa => 'X11::XCB::Color', coerce => 1, default => undef);
+has 'background_color' => (is => 'ro', isa => 'X11::XCB::Color', coerce => 1, predicate => '_has_background_color');
 has 'name' => (is => 'rw', isa => 'Str', trigger => \&_update_name);
 has 'fullscreen' => (is => 'rw', isa => 'Int', trigger => \&_update_fullscreen);
 has 'hints' => (is => 'rw', isa => 'X11::XCB::Sizehints', lazy_build => 1);
@@ -134,7 +134,7 @@ sub _create {
     my $mask = 0;
     my @values;
 
-    if ($self->background_color) {
+    if ($self->_has_background_color) {
         $mask |= CW_BACK_PIXEL;
         push @values, $self->background_color->pixel;
     }
