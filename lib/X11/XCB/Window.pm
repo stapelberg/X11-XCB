@@ -209,7 +209,7 @@ sub unmap {
 
     $self->_conn->unmap_window($self->id);
     $self->_conn->flush;
-    $self->_mapped(1);
+    $self->_mapped(0);
 }
 
 =head2 mapped
