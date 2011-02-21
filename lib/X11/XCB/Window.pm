@@ -36,6 +36,7 @@ has 'override_redirect' => (is => 'ro', isa => 'Int', default => 0);
 has 'background_color' => (is => 'ro', isa => 'X11::XCB::Color', coerce => 1, predicate => '_has_background_color');
 has 'name' => (is => 'rw', isa => 'Str', trigger => \&_update_name);
 has 'fullscreen' => (is => 'rw', isa => 'Int', trigger => \&_update_fullscreen);
+has 'border' => (is => 'rw', isa => 'Int', default => 0, trigger => \&_update_border);
 has 'hints' => (is => 'rw', isa => 'X11::XCB::Sizehints', lazy_build => 1);
 has '_hints' => (is => 'rw', isa => 'ArrayRef', default => sub { [ ] });
 has '_conn' => (is => 'ro', required => 1);
@@ -153,7 +154,7 @@ sub _create {
             $self->_rect->y,
             $self->_rect->width,
             $self->_rect->height,
-            0, # border
+            $self->border, # border
             $self->class,
             0, # copy visual TODO
             $mask,
@@ -306,6 +307,18 @@ sub _update_fullscreen {
         );
     }
 
+    $conn->flush;
+}
+
+sub _update_border {
+    my $self = shift;
+    my $conn = $self->_conn;
+
+    return unless $self->_created;
+
+    my $mask = CONFIG_WINDOW_BORDER_WIDTH;
+    my @values = ($self->border);
+    $conn->configure_window($self->id, $mask, @values);
     $conn->flush;
 }
 
