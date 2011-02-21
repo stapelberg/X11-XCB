@@ -212,6 +212,19 @@ sub unmap {
     $self->_mapped(0);
 }
 
+=head2 destroy
+
+Destroys the window completely
+
+=cut
+sub destroy {
+    my $self = shift;
+
+    $self->_conn->destroy_window($self->id);
+    $self->_conn->flush;
+    $self->_created(0);
+}
+
 =head2 mapped
 
 Returns whether the window is actually mapped (no internal state, but gets
