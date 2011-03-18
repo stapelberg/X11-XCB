@@ -38,6 +38,11 @@ has 'name' => (is => 'rw', isa => 'Str', trigger => \&_update_name);
 has 'fullscreen' => (is => 'rw', isa => 'Int', trigger => \&_update_fullscreen);
 has 'border' => (is => 'rw', isa => 'Int', default => 0, trigger => \&_update_border);
 has 'hints' => (is => 'rw', isa => 'X11::XCB::Sizehints', lazy_build => 1);
+has 'event_mask' => (
+    is => 'ro',
+    isa => 'ArrayRef[Str]',
+    default => sub { [] },
+);
 has '_hints' => (is => 'rw', isa => 'ArrayRef', default => sub { [ ] });
 has '_conn' => (is => 'ro', required => 1);
 has '_mapped' => (is => 'rw', isa => 'Int', default => 0);
@@ -144,6 +149,18 @@ sub _create {
     if ($self->override_redirect == 1) {
         $mask |= CW_OVERRIDE_REDIRECT;
         push @values, 1;
+    }
+
+    my @event_mask = @{$self->event_mask};
+    if (@event_mask > 0) {
+        $mask |= CW_EVENT_MASK;
+        my $value = 0;
+        for my $flag (@event_mask) {
+            my $name = 'EVENT_MASK_' . uc($flag);
+            no strict 'refs';
+            $value |= $name->();
+        }
+        push @values, $value;
     }
 
     $self->_conn->create_window(
