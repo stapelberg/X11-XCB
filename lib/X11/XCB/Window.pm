@@ -43,6 +43,16 @@ has 'event_mask' => (
     isa => 'ArrayRef[Str]',
     default => sub { [] },
 );
+has 'protocols' => (
+    traits => [ 'Array' ],
+    is => 'ro',
+    isa => 'ArrayRef[X11::XCB::Atom]',
+    default => sub { [] },
+    handles => {
+        no_protocols => 'is_empty',
+        protocols_count => 'count',
+    }
+);
 has '_hints' => (is => 'rw', isa => 'ArrayRef', default => sub { [ ] });
 has '_conn' => (is => 'ro', required => 1);
 has '_mapped' => (is => 'rw', isa => 'Int', default => 0);
@@ -140,6 +150,8 @@ sub _create {
     my $mask = 0;
     my @values;
 
+    my $x = $self->_conn;
+
     if ($self->_has_background_color) {
         $mask |= CW_BACK_PIXEL;
         push @values, $self->background_color->pixel;
@@ -163,7 +175,7 @@ sub _create {
         push @values, $value;
     }
 
-    $self->_conn->create_window(
+    $x->create_window(
             WINDOW_CLASS_COPY_FROM_PARENT,
             $self->id,
             $self->parent,
@@ -184,6 +196,22 @@ sub _create {
     $self->_update_name if defined($self->name);
     $self->_update_transient_for if defined($self->transient_for);
     $self->_update_client_leader if defined($self->client_leader);
+
+    if (!$self->no_protocols) {
+        my $atomname = $x->atom(name => 'WM_PROTOCOLS');
+        my $atomtype = $x->atom(name => 'ATOM');
+        my $atoms = pack('L*', map { $_->id } @{$self->protocols});
+
+        $x->change_property(
+            PROP_MODE_REPLACE,
+            $self->id,
+            $atomname->id,
+            $atomtype->id,
+            32,
+            $self->protocols_count,
+            $atoms,
+        );
+    }
 }
 
 =head2 attributes
