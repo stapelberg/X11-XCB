@@ -243,6 +243,11 @@ sub mapped {
 
 sub _update_name {
     my $self = shift;
+
+    # Make sure the window is created first. _create calls _update_name, so we
+    # are done.
+    return $self->_create unless $self->_created;
+
     my $conn = $self->_conn;
     my $atomname = $conn->atom(name => '_NET_WM_NAME');
     my $atomtype = $conn->atom(name => 'UTF8_STRING');
