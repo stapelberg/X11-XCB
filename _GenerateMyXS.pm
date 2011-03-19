@@ -18,6 +18,8 @@ use Data::Dumper;
 use File::Basename qw(basename);
 use List::Util qw(first);
 use List::MoreUtils qw(uniq);
+use Try::Tiny;
+use ExtUtils::PkgConfig;
 
 use XML::Simple qw(:strict);
 
@@ -28,6 +30,7 @@ sub slurp {
 	<$fh>;
 }
 
+my $xcb_util_present = 0;
 
 my $prefix = 'xcb_';
 
@@ -654,6 +657,13 @@ sub generate {
 
     -d $path or die "$path: $!\n";
 
+    # check if xcb-util could be found, if so, we are using the version after the repository split
+    try {
+        my %info = ExtUtils::PkgConfig->find("xcb-util");
+        print "xcb-util present\n";
+        $xcb_util_present = 1;
+    };
+
     # TODO: Handle all .xmls
     #opendir(DIR, '.');
     #@files = grep { /\.xml$/ } readdir(DIR);
@@ -692,10 +702,14 @@ eot
         print OUT qq|#include "$bname.typedefs"\n|;
     }
 
-    print OUT << 'eot';
+if ($xcb_util_present) {
+    print OUT "typedef xcb_icccm_wm_hints_t X11_XCB_ICCCM_WMHints;\n";
+} else {
+    print OUT "typedef xcb_wm_hints_t X11_XCB_ICCCM_WMHints;\n";
+}
 
+    print OUT << 'eot';
 typedef struct my_xcb_conn XCBConnection;
-typedef xcb_wm_hints_t X11_XCB_ICCCM_WMHints;
 typedef xcb_size_hints_t X11_XCB_ICCCM_SizeHints;
 typedef int intArray;
 
