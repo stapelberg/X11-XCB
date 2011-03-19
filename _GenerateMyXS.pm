@@ -776,6 +776,9 @@ _new_event_object(xcb_generic_event_t *event)
 eot
 
     my $ext = slurp('XCB_util.inc');
+    if (!$xcb_util_present) {
+        $ext =~ s/xcb_icccm_/xcb_/g;
+    }
     print OUT $ext;
 
     print OUT << 'eot';

@@ -22,7 +22,7 @@ void
 set_urgency(self)
     X11_XCB_ICCCM_WMHints * self
   CODE:
-    xcb_wm_hints_set_urgency(self);
+    xcb_icccm_wm_hints_set_urgency(self);
 
 MODULE = X11::XCB PACKAGE = X11::XCB::ICCCM
 
@@ -32,7 +32,7 @@ set_wm_hints(conn, window, hints)
     int window
     X11_XCB_ICCCM_WMHints * hints
   CODE:
-    xcb_set_wm_hints(conn->conn, window, hints);
+    xcb_icccm_set_wm_hints(conn->conn, window, hints);
 
 void
 set_wm_size_hints(conn, window, property, hints)
@@ -41,7 +41,7 @@ set_wm_size_hints(conn, window, property, hints)
     int property
     X11_XCB_ICCCM_SizeHints * hints
   CODE:
-    xcb_set_wm_size_hints(conn->conn, window, property, hints);
+    xcb_icccm_set_wm_size_hints(conn->conn, window, property, hints);
 
 
 
@@ -71,4 +71,4 @@ set_aspect(self, min_aspect_num, min_aspect_den, max_aspect_num, max_aspect_den)
     int max_aspect_num
     int max_aspect_den
   CODE:
-    xcb_size_hints_set_aspect(self, min_aspect_num, min_aspect_den, max_aspect_num, max_aspect_den);
+    xcb_icccm_size_hints_set_aspect(self, min_aspect_num, min_aspect_den, max_aspect_num, max_aspect_den);
