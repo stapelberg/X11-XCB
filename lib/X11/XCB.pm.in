@@ -25,7 +25,7 @@ our @EXPORT = qw(
 	
 );
 
-our $VERSION = '0.01_007';
+our $VERSION = '0.02';
 
 require XSLoader;
 XSLoader::load('X11::XCB', $VERSION);
