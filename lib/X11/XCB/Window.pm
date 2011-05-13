@@ -546,9 +546,7 @@ sub state {
     my $state = $conn->atom(name => 'WM_STATE')->id;
     my $cookie = $conn->get_property(0, $self->id, $state, 0, 0, 8);
     my $reply = $conn->get_property_reply($cookie->{sequence});
-    my $state = unpack('L', $reply->{value});
-
-    return $state;
+    return unpack('L', $reply->{value});
 }
 
 1
