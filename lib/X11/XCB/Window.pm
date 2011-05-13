@@ -534,5 +534,22 @@ sub warp_pointer {
     $self->_conn->flush;
 }
 
+=head2 state
+
+Returns the WM_STATE of this window (normal, withdrawn, iconic).
+
+=cut
+sub state {
+    my ($self) = @_;
+
+    my $conn = $self->_conn;
+    my $state = $conn->atom(name => 'WM_STATE')->id;
+    my $cookie = $conn->get_property(0, $self->id, $state, 0, 0, 8);
+    my $reply = $conn->get_property_reply($cookie->{sequence});
+    my $state = unpack('L', $reply->{value});
+
+    return $state;
+}
+
 1
 # vim:ts=4:sw=4:expandtab
