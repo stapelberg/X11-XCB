@@ -613,16 +613,6 @@ sub do_enums($)
         print OUTENUMS "$name\n";
     }
 
-    # Our own additions: EWMH constants
-    print OUT "    newCONSTSUB(stash, \"_NET_WM_STATE_ADD\", newSViv(1));\n";
-    print OUTENUMS "_NET_WM_STATE_ADD\n";
-
-    print OUT "    newCONSTSUB(stash, \"_NET_WM_STATE_REMOVE\", newSViv(0));\n";
-    print OUTENUMS "_NET_WM_STATE_REMOVE\n";
-
-    print OUT "    newCONSTSUB(stash, \"_NET_WM_STATE_TOGGLE\", newSViv(2));\n";
-    print OUTENUMS "_NET_WM_STATE_TOGGLE\n";
-
     #
     #foreach my $event (@{$xcb->{'eventcopy'}}) {
     #    my $name = $event->{'name'};
@@ -800,6 +790,24 @@ eot
         }
         do_enums($xcb);
     }
+
+    # Our own additions: EWMH constants
+    print OUT "    newCONSTSUB(stash, \"_NET_WM_STATE_ADD\", newSViv(1));\n";
+    print OUTENUMS "_NET_WM_STATE_ADD\n";
+
+    print OUT "    newCONSTSUB(stash, \"_NET_WM_STATE_REMOVE\", newSViv(0));\n";
+    print OUTENUMS "_NET_WM_STATE_REMOVE\n";
+
+    print OUT "    newCONSTSUB(stash, \"_NET_WM_STATE_TOGGLE\", newSViv(2));\n";
+    print OUTENUMS "_NET_WM_STATE_TOGGLE\n";
+
+    # ICCCM constants from xcb-util
+    for my $const (qw(XCB_ICCCM_WM_STATE_WITHDRAWN XCB_ICCCM_WM_STATE_NORMAL XCB_ICCCM_WM_STATE_ICONIC)) {
+        my ($name) = ($const =~ /XCB_(.*)/);
+        print OUT "    newCONSTSUB(stash, \"$name\", newSViv($const));\n";
+        print OUTENUMS "$name\n";
+    }
+
 
     print OUT << 'eot';
 }
