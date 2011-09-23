@@ -27,9 +27,6 @@ all_from 'lib/X11/XCB.pm.in';
 
 author_requires 'Module::Install::XSUtil';
 
-# we need pkg-config to find xcb-proto when generating XS
-requires_external_bin 'pkg-config';
-
 cc_libs qw(xcb xcb-xinerama xcb-icccm);
 
 # needed for the XS-autogeneration
