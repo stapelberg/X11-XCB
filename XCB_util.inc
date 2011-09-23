@@ -1,6 +1,5 @@
-/*
- * vim:ft=xs
- */
+# vim:ft=xs
+
 MODULE = X11::XCB PACKAGE = X11::XCB::ICCCM::WMHints
 
 PROTOTYPES: ENABLE

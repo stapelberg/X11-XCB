@@ -3,8 +3,7 @@ MANIFEST.bak
 META.yml
 Makefile
 Makefile.old
-XCB.xs
 XCB.c
+XCB.bs
 typemap
-xinerama.typedefs
-xproto.typedefs
+typedefs.h
