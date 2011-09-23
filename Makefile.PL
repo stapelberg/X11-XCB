@@ -1,26 +1,9 @@
 # requires Module::Install::XSUtil
 use inc::Module::Install;
-use FileHandle;
-use IO::Handle;
-use autodie;
 use lib '.';
 use _GenerateMyXS;
 
 use ExtUtils::PkgConfig;
-
-# reads in a whole file
-sub slurp {
-	open my $fh, '<', shift;
-	local $/;
-	<$fh>;
-}
-
-# spits out a file
-sub spit {
-	open my $fh, '>', shift;
-	$fh->print($_) for @_;
-}
-
 
 name 'X11-XCB';
 all_from 'lib/X11/XCB.pm.in';
@@ -51,11 +34,11 @@ my $xml_path = $pc->variable('xcb-proto', 'xcbincludedir');
 _GenerateMyXS::generate($xml_path, qw/xproto.xml xinerama.xml/);
 
 print "Loading enums.list...\n";
-my $enums = slurp('enums.list');
+my $enums = _GenerateMyXS::slurp('enums.list');
 print "Replacing in lib/X11/XCB.pm.in\n";
-my $libfile = slurp('lib/X11/XCB.pm.in');
+my $libfile = _GenerateMyXS::slurp('lib/X11/XCB.pm.in');
 $libfile =~ s/ENUMS_REPLACE_ME/qw($enums)/g;
 
-spit('lib/X11/XCB.pm', $libfile);
+_GenerateMyXS::spit('lib/X11/XCB.pm', $libfile);
 
 WriteAll;

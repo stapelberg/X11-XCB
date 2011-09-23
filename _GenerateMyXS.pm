@@ -30,6 +30,11 @@ sub slurp {
 	<$fh>;
 }
 
+sub spit {
+    open my $fh, '>', shift;
+    print $fh @_;
+}
+
 my $xcb_util_present = 0;
 
 my $prefix = 'xcb_';
