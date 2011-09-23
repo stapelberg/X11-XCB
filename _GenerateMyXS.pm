@@ -597,16 +597,14 @@ sub do_replies($\%\%)
     }
 }
 
-sub do_enums($)
-{
-    my $xcb = shift;
+sub do_enums {
+    my ($xcb, $consts) = @_;
 
     foreach my $enum (@{$xcb->{'enum'}}) {
         my $name = uc(mangle($enum->{'name'}, 1));
         foreach my $item (@{$enum->{'item'}}) {
             my $tname = $name . "_" . uc(mangle($item->{'name'}, 1));
-            print OUT "    newCONSTSUB(stash, \"$tname\", newSViv(XCB_$tname));\n";
-            print OUTENUMS "$tname\n";
+            $consts->{$tname} = "newSViv(XCB_$tname)";
         }
     }
 
@@ -614,8 +612,7 @@ sub do_enums($)
     foreach my $event (@{$xcb->{'event'}}) {
         my $number = $event->{'number'};
         my $name = uc(mangle($event->{'name'}, 1));
-        print OUT "    newCONSTSUB(stash, \"$name\", newSViv(XCB_$name));\n";
-        print OUTENUMS "$name\n";
+        $consts->{$name} = "newSViv(XCB_$name)";
     }
 
     #
@@ -673,7 +670,6 @@ sub generate {
 
     open(OUT, ">XCB.xs");
     open(OUTTM, ">typemap");
-    open(OUTENUMS, ">enums.list");
 
     print OUTTM "XCBConnection * T_PTROBJ\n";
     print OUTTM "intArray * T_ARRAY\n";
@@ -783,9 +779,24 @@ MODULE = X11::XCB PACKAGE = X11::XCB
 
 BOOT:
 {
-    HV *stash = gv_stashpvn("X11::XCB", strlen("X11::XCB"), TRUE);
+    HV *stash = gv_stashpvn("X11::XCB", strlen("X11::XCB"), FALSE);
+    HV *export_tags = get_hv("X11::XCB::EXPORT_TAGS", FALSE);
+    SV **export_tags_all = hv_fetch(export_tags, "all", strlen("all"), 0);
+    SV *tmpsv;
+    AV *tags_all;
+
+    if (!(export_tags_all &&
+        SvROK(*export_tags_all) &&
+        (tmpsv = (SV*)SvRV(*export_tags_all)) &&
+        SvTYPE(tmpsv) == SVt_PVAV &&
+        (tags_all = (AV*)tmpsv)))
+    {
+        croak("$EXPORT_TAGS{all} is not an array reference");
+    }
+
 eot
 
+    my %consts;
     for my $name (@files) {
         my $xcb = XMLin($name, KeyAttr => undef, ForceArray => 1);
         if ($name =~ /xproto/) {
@@ -794,26 +805,24 @@ eot
             $prefix = 'xcb_' . basename($name) . '_';
             $prefix =~ s/\.xml$//;
         }
-        do_enums($xcb);
+        do_enums($xcb, \%consts);
     }
 
     # Our own additions: EWMH constants
-    print OUT "    newCONSTSUB(stash, \"_NET_WM_STATE_ADD\", newSViv(1));\n";
-    print OUTENUMS "_NET_WM_STATE_ADD\n";
-
-    print OUT "    newCONSTSUB(stash, \"_NET_WM_STATE_REMOVE\", newSViv(0));\n";
-    print OUTENUMS "_NET_WM_STATE_REMOVE\n";
-
-    print OUT "    newCONSTSUB(stash, \"_NET_WM_STATE_TOGGLE\", newSViv(2));\n";
-    print OUTENUMS "_NET_WM_STATE_TOGGLE\n";
+    $consts{_NET_WM_STATE_ADD} = 'newSViv(1)';
+    $consts{_NET_WM_STATE_REMOVE} = 'newSViv(0)';
+    $consts{_NET_WM_STATE_TOGGLE} = 'newSViv(2)';
 
     # ICCCM constants from xcb-util
     for my $const (qw(XCB_ICCCM_WM_STATE_WITHDRAWN XCB_ICCCM_WM_STATE_NORMAL XCB_ICCCM_WM_STATE_ICONIC)) {
         my ($name) = ($const =~ /XCB_(.*)/);
-        print OUT "    newCONSTSUB(stash, \"$name\", newSViv($const));\n";
-        print OUTENUMS "$name\n";
+        $consts{$name} = "newSViv($const)";
     }
 
+    for my $name (keys %consts) {
+        printf OUT qq/    newCONSTSUB(stash, "%s", %s);\n/, $name, $consts{$name};
+        printf OUT qq/    av_push(tags_all, newSVpvn("%s", %d));\n/, $name, length $name;
+    }
 
     print OUT << 'eot';
 }
@@ -931,7 +940,6 @@ eot
 
     close OUT;
     close OUTTM;
-    close OUTENUMS;
 }
 
 'The One True Value';

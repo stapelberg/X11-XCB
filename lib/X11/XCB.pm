@@ -4,33 +4,19 @@ use 5.010000;
 use strict;
 use warnings;
 
-require Exporter;
-
-our @ISA = qw(Exporter);
-
-# Items to export into callers namespace by default. Note: do not export
-# names by default without a very good reason. Use EXPORT_OK instead.
-# Do not simply export all your public functions/methods/constants.
-
-# This allows declaration	use X11::XCB ':all';
-# If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
-# will save memory.
-our %EXPORT_TAGS = ( 'all' => [
-ENUMS_REPLACE_ME
-] );
-
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
-
-our @EXPORT = qw(
-	
-);
-
 our $VERSION = '0.02';
+
+use Exporter 'import';
+
+our @EXPORT;
+our %EXPORT_TAGS = (all => []); # empty array ref for XS
 
 require XSLoader;
 XSLoader::load('X11::XCB', $VERSION);
 
-# Preloaded methods go here.
+# since XS adds its constants to $EXPORT_TAGS{all}
+# this *must* come after XSLoader::load:
+our @EXPORT_OK = ( @{ $EXPORT_TAGS{all} } );
 
 1;
 __END__

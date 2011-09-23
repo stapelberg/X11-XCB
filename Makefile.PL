@@ -3,7 +3,7 @@ use strict; use warnings;
 use inc::Module::Install;
 
 name 'X11-XCB';
-all_from 'lib/X11/XCB.pm.in';
+all_from 'lib/X11/XCB.pm';
 
 configure_requires (my $PC = 'ExtUtils::PkgConfig');
 require ExtUtils::PkgConfig;
@@ -40,14 +40,6 @@ if ($ENV{MI_AUTHOR} or $Module::Install::AUTHOR) {
 
     require _GenerateMyXS;
     _GenerateMyXS::generate($xml_path, qw/xproto.xml xinerama.xml/);
-
-    print "Loading enums.list...\n";
-    my $enums = _GenerateMyXS::slurp('enums.list');
-    print "Replacing in lib/X11/XCB.pm.in\n";
-    my $libfile = _GenerateMyXS::slurp('lib/X11/XCB.pm.in');
-    $libfile =~ s/ENUMS_REPLACE_ME/qw($enums)/g;
-
-    _GenerateMyXS::spit('lib/X11/XCB.pm', $libfile);
 }
 
 WriteAll;
