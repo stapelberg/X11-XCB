@@ -1,4 +1,5 @@
-# requires Module::Install::XSUtil
+# author needs Module::Install::{AuthorRequires,XSUtil}
+use strict; use warnings;
 use inc::Module::Install;
 use lib '.';
 use _GenerateMyXS;
@@ -7,8 +8,6 @@ use ExtUtils::PkgConfig;
 
 name 'X11-XCB';
 all_from 'lib/X11/XCB.pm.in';
-
-author_requires 'Module::Install::XSUtil';
 
 cc_libs qw(xcb xcb-xinerama xcb-icccm);
 
