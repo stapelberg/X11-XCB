@@ -4,13 +4,11 @@
 ^\.gitignore$
 \.o$
 \.bak$
-^XCB.xs$
 ^XCB.c$
-^lib/X11/XCB.pm$
+^XCB.bs$
 ^Makefile$
 ^Makefile.old$
 ^t/pod-coverage.t$
 \.typedefs$
-^typemap$
 ^X11-XCB-*
-^enums.list$
+^\..+\.sw[po]$

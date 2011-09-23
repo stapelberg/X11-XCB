@@ -1,8 +1,6 @@
 # author needs Module::Install::{AuthorRequires,XSUtil}
 use strict; use warnings;
 use inc::Module::Install;
-use lib '.';
-use _GenerateMyXS;
 
 name 'X11-XCB';
 all_from 'lib/X11/XCB.pm.in';
@@ -23,11 +21,6 @@ cc_libs @xcb_libs;
 
 use_ppport;
 
-# needed for the XS-autogeneration
-configure_requires 'XML::Simple' => '0.00';
-configure_requires 'List::Util'  => '0.00';
-configure_requires 'autodie'     => '0.00';
-
 test_requires 'Test::More';
 test_requires 'Test::Deep';
 test_requires 'Test::Exception';
@@ -35,18 +28,26 @@ test_requires 'Test::Exception';
 requires 'Moose';
 requires 'Try::Tiny';
 
-my %xcb = $PC->find('xcb');
-my %xcb_xinerama = $PC->find('xcb-xinerama');
-my $xml_path = $PC->variable('xcb-proto', 'xcbincludedir');
+# needed for the XS-autogeneration
+author_requires 'XML::Simple';
+author_requires 'List::MoreUtils';
+author_requires 'autodie';
 
-_GenerateMyXS::generate($xml_path, qw/xproto.xml xinerama.xml/);
+if ($ENV{MI_AUTHOR} or $Module::Install::AUTHOR) {
+    my %xcb = $PC->find('xcb');
+    my %xcb_xinerama = $PC->find('xcb-xinerama');
+    my $xml_path = $PC->variable('xcb-proto', 'xcbincludedir');
 
-print "Loading enums.list...\n";
-my $enums = _GenerateMyXS::slurp('enums.list');
-print "Replacing in lib/X11/XCB.pm.in\n";
-my $libfile = _GenerateMyXS::slurp('lib/X11/XCB.pm.in');
-$libfile =~ s/ENUMS_REPLACE_ME/qw($enums)/g;
+    require _GenerateMyXS;
+    _GenerateMyXS::generate($xml_path, qw/xproto.xml xinerama.xml/);
 
-_GenerateMyXS::spit('lib/X11/XCB.pm', $libfile);
+    print "Loading enums.list...\n";
+    my $enums = _GenerateMyXS::slurp('enums.list');
+    print "Replacing in lib/X11/XCB.pm.in\n";
+    my $libfile = _GenerateMyXS::slurp('lib/X11/XCB.pm.in');
+    $libfile =~ s/ENUMS_REPLACE_ME/qw($enums)/g;
+
+    _GenerateMyXS::spit('lib/X11/XCB.pm', $libfile);
+}
 
 WriteAll;

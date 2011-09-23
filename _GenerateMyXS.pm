@@ -654,6 +654,7 @@ sub generate {
 
     # check if xcb-util could be found, if so, we are using the version after the repository split
     try {
+        # XXX the croak might be confusing and wrong
         my %info = ExtUtils::PkgConfig->find("xcb-util");
         print "xcb-util present\n";
         $xcb_util_present = 1;
