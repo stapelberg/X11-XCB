@@ -1,7 +1,7 @@
 package X11::XCB::Window;
 
-use Moose;
-use Moose::Util::TypeConstraints;
+use Mouse;
+use Mouse::Util::TypeConstraints;
 use X11::XCB::Rect;
 use X11::XCB::Connection;
 use X11::XCB::Atom;

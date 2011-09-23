@@ -1,6 +1,6 @@
 package X11::XCB::Screen;
 
-use Moose;
+use Mouse;
 use X11::XCB::Rect;
 
 has 'rect' => (is => 'ro', isa => 'X11::XCB::Rect', required => 1);

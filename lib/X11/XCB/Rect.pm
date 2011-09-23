@@ -16,8 +16,8 @@ But in most cases, you should be able to coerce a rect from an arrayref:
 =cut
 package X11::XCB::Rect;
 
-use Moose;
-use Moose::Util::TypeConstraints;
+use Mouse;
+use Mouse::Util::TypeConstraints;
 
 coerce 'X11::XCB::Rect'
     => from 'ArrayRef'

@@ -1,6 +1,6 @@
 package X11::XCB::Sizehints::Aspect;
 
-use Moose;
+use Mouse;
 use Data::Dumper;
 use v5.10;
 

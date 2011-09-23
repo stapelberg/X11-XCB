@@ -1,6 +1,6 @@
 package X11::XCB::Atom;
 
-use Moose;
+use Mouse;
 use X11::XCB::Connection;
 use Carp;
 use Try::Tiny;

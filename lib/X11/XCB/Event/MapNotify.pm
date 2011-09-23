@@ -1,6 +1,6 @@
 package X11::XCB::Event::MapNotify;
 
-use Moose;
+use Mouse;
 
 # XXX: the following are filled in by XS
 has [ 'response_type', 'sequence', 'event', 'window' ] => (is => 'ro', isa => 'Int');

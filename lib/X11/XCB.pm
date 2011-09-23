@@ -42,7 +42,7 @@ X11::XCB - perl bindings for libxcb
 
 These bindings wrap libxcb (a C library to speak with X11, in many cases better
 than Xlib in many aspects) and provide a nice object oriented interface to its
-methods (using Moose).
+methods (using Mouse).
 
 Please note that its aim is B<NOT> to provide yet another toolkit for creating
 graphical applications. It is a low-level method of communicating with X11. Use

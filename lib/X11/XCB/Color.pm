@@ -1,7 +1,7 @@
 package X11::XCB::Color;
 
-use Moose;
-use Moose::Util::TypeConstraints;
+use Mouse;
+use Mouse::Util::TypeConstraints;
 
 coerce 'X11::XCB::Color'
     => from 'Str'

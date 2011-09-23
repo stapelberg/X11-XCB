@@ -1,6 +1,6 @@
 package X11::XCB::Event::ClientMessage;
 
-use Moose;
+use Mouse;
 
 # XXX: the following are filled in by XS
 has [ 'response_type', 'sequence', 'window', 'type' ] => (is => 'ro', isa => 'Int');

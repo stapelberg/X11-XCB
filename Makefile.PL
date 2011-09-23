@@ -25,7 +25,8 @@ test_requires 'Test::More';
 test_requires 'Test::Deep';
 test_requires 'Test::Exception';
 
-requires 'Moose';
+requires 'Mouse';
+requires 'MouseX::NativeTraits';
 requires 'Try::Tiny';
 
 # needed for the XS-autogeneration
