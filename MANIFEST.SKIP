@@ -9,6 +9,5 @@
 ^Makefile$
 ^Makefile.old$
 ^t/pod-coverage.t$
-\.typedefs$
 ^X11-XCB-*
 ^\..+\.sw[po]$
