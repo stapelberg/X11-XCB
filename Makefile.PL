@@ -11,6 +11,8 @@ all_from 'lib/X11/XCB.pm.in';
 
 cc_libs qw(xcb xcb-xinerama xcb-icccm);
 
+use_ppport;
+
 # needed for the XS-autogeneration
 configure_requires 'XML::Simple' => '0.00';
 configure_requires 'List::Util'  => '0.00';
