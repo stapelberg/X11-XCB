@@ -685,7 +685,7 @@ sub generate {
         if ($name eq 'xproto') {
             $prefix = 'xcb_';
         } else {
-            $prefix = "xcb_$name";
+            $prefix = "xcb_${name}_";
         }
 
         my %functions;
