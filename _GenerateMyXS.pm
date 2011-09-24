@@ -698,18 +698,14 @@ sub generate {
     print $fh_c "}\n";
     close $fh_c;
 
-    for my $name (@files) {
-        my $path = $name;
-        $name =~ s/\.xml$//;
-        $name = basename($name);
-
+    for my $path (@files) {
         my $xcb = XMLin("$path", KeyAttr => undef, ForceArray => 1);
+        my $name = $xcb->{header};
 
-        if ($name =~ /xproto/) {
+        if ($name eq 'xproto') {
             $prefix = 'xcb_';
         } else {
-            $prefix = 'xcb_' . basename($name) . '_';
-            $prefix =~ s/\.xml$//;
+            $prefix = "xcb_$name";
         }
 
         my %functions;
