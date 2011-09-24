@@ -143,7 +143,7 @@ $name(self)
 __
 }
 
-sub mangle($;$) {
+sub xcb_name($;$) {
     my ($name, $clean) = @_;
 
     my %simple = (
@@ -231,7 +231,7 @@ sub do_structs($) {
 
     for my $struct (@{ $xcb->{struct} }) {
         my $name     = $struct->{name};
-        my $xcbname  = mangle($name) . '_t';
+        my $xcbname  = xcb_name($name) . '_t';
         my $perlname = $xcbname;
         $perlname =~ s/^xcb_([a-z])/XCB\u$1/g;
         $perlname =~ s/_t$//g;
@@ -271,7 +271,7 @@ sub do_structs($) {
 
 #    for my $union (@{$xcb->{union}}) {
 #   my $name = $union->{name};
-#   my $xcbname = mangle($name).'_t';
+#   my $xcbname = xcb_name($name).'_t';
 #
 #   print OUT "static ";
 #   print OUT "void push_$name (lua_State *L, const $xcbname *x)\n";
@@ -316,19 +316,19 @@ sub get_vartype($) {
     my $type = shift;
 
     return $xcbtype{$type} if (defined($xcbtype{$type}));
-    return mangle($type) . "_t";
+    return xcb_name($type) . "_t";
 }
 
 sub do_requests($\%) {
     my ($xcb, $func)  = @_;
 
     for my $req (@{ $xcb->{request} }) {
-        my $mangled  = mangle($req->{name});
+        my $mangled  = xcb_name($req->{name});
         my $stripped = $mangled;
         $stripped =~ s/^xcb_//g;
 
         #print Dumper($req);
-        my $cookie = mangle($req->{name}) . "_cookie_t";
+        my $cookie = xcb_name($req->{name}) . "_cookie_t";
         if (!defined($req->{reply})) {
             $cookie = "xcb_void_cookie_t";
         }
@@ -432,7 +432,7 @@ sub do_requests($\%) {
         # Function call
         print OUT "    ";
         print OUT "cookie = ";
-        print OUT mangle($req->{name}) . "(";
+        print OUT xcb_name($req->{name}) . "(";
 
         my @params = ('conn->conn');
 
@@ -486,7 +486,7 @@ sub do_requests($\%) {
         $retcount = 1 if (defined($req->{reply}));
         print OUT "  OUTPUT:\n    RETVAL\n\n";
 
-        my $manglefunc = mangle($req->{name}, 1);
+        my $manglefunc = xcb_name($req->{name}, 1);
         $func->{$manglefunc} = $req->{name};
     }
 }
@@ -498,7 +498,7 @@ sub do_events($) {
     # TODO: events
 
 #    for my $event (@{$xcb->{event}}) {
-#   my $xcbev = mangle($event->{name})."_event_t";
+#   my $xcbev = xcb_name($event->{name})."_event_t";
 #   print OUT "/* This function adds the remaining fields into the table\n  that is on the top of the stack */\n";
 #   print OUT "static void set_";
 #   print OUT $event->{name};
@@ -531,11 +531,11 @@ sub do_replies($\%\%) {
         my $rep = $req->{reply};
         next unless defined($rep);
 
-        my $name     = mangle($req->{name}) . "_reply";
-        my $reply    = mangle($req->{name}) . "_reply_t";
+        my $name     = xcb_name($req->{name}) . "_reply";
+        my $reply    = xcb_name($req->{name}) . "_reply_t";
         my $perlname = $name;
         $perlname =~ s/^xcb_//g;
-        my $cookie = mangle($req->{name}) . "_cookie_t";
+        my $cookie = xcb_name($req->{name}) . "_cookie_t";
 
         print OUT "HV *\n$perlname(conn,sequence)\n";
         print OUT "    XCBConnection *conn\n";
@@ -570,10 +570,10 @@ sub do_replies($\%\%) {
 
         for my $list (@{ $rep->[0]->{list} }) {
             my $listname      = $list->{name};
-            my $type          = mangle($list->{type}) . '_t';
-            my $iterator      = mangle($list->{type}) . '_iterator_t';
-            my $iterator_next = mangle($list->{type}) . '_next';
-            my $pre           = mangle($req->{name});
+            my $type          = xcb_name($list->{type}) . '_t';
+            my $iterator      = xcb_name($list->{type}) . '_iterator_t';
+            my $iterator_next = xcb_name($list->{type}) . '_next';
+            my $pre           = xcb_name($req->{name});
 
             if ($list->{type} eq 'void') {
 
@@ -627,9 +627,9 @@ sub do_enums {
     my ($xcb, $consts) = @_;
 
     for my $enum (@{ $xcb->{enum} }) {
-        my $name = uc(mangle($enum->{name}, 1));
+        my $name = uc(xcb_name($enum->{name}, 1));
         for my $item (@{ $enum->{item} }) {
-            my $tname = $name . "_" . uc(mangle($item->{name}, 1));
+            my $tname = $name . "_" . uc(xcb_name($item->{name}, 1));
             $consts->{$tname} = "newSViv(XCB_$tname)";
         }
     }
@@ -637,7 +637,7 @@ sub do_enums {
     # Events
     for my $event (@{ $xcb->{event} }) {
         my $number = $event->{number};
-        my $name = uc(mangle($event->{name}, 1));
+        my $name = uc(xcb_name($event->{name}, 1));
         $consts->{$name} = "newSViv(XCB_$name)";
     }
 
