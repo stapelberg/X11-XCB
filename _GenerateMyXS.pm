@@ -521,6 +521,8 @@ sub do_replies($\%\%) {
         print OUT "  CODE:\n";
         print OUT "    cookie.sequence = sequence;\n";
         print OUT "    reply = $name(conn->conn, cookie, NULL);\n";
+        # XXX use connection_has_error
+        print OUT qq/    if (!reply) croak("Could not get reply for: $name"); /;
         print OUT "    hash = newHV();\n";
 
         # We ignore pad0 and response_type. Every reply has sequence and length
