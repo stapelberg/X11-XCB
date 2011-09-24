@@ -13,6 +13,7 @@ package _GenerateMyXS;
 
 use warnings;
 use strict;
+use v5.10;
 use autodie;
 use Data::Dumper;
 use File::Basename qw(basename);
@@ -666,17 +667,6 @@ sub generate {
     print OUTTM "X11_XCB_ICCCM_SizeHints * T_PTROBJ\n";
 
     my %consts;
-    for my $name (@files) {
-        my $xcb = XMLin($name, KeyAttr => undef, ForceArray => 1);
-        if ($name =~ /xproto/) {
-            $prefix = 'xcb_';
-        } else {
-            $prefix = 'xcb_' . basename($name) . '_';
-            $prefix =~ s/\.xml$//;
-        }
-        do_enums($xcb, \%consts);
-    }
-
     # Our own additions: EWMH constants
     $consts{_NET_WM_STATE_ADD}    = 'newSViv(1)';
     $consts{_NET_WM_STATE_REMOVE} = 'newSViv(0)';
@@ -687,16 +677,6 @@ sub generate {
         my ($name) = ($const =~ /XCB_(.*)/);
         $consts{$name} = "newSViv($const)";
     }
-
-    open my $fh_c, '>', 'XCB.inc';
-    print $fh_c "static void boot_constants(HV *stash, AV *tags_all) {\n";
-    printf $fh_c qq/    av_extend(tags_all, %d);\n/, scalar keys %consts;
-    for my $name (keys %consts) {
-        printf $fh_c qq/    newCONSTSUB(stash, "%s", %s);\n/,          $name, $consts{$name};
-        printf $fh_c qq/    av_push(tags_all, newSVpvn("%s", %d));\n/, $name, length $name;
-    }
-    print $fh_c "}\n";
-    close $fh_c;
 
     for my $path (@files) {
         my $xcb = XMLin("$path", KeyAttr => undef, ForceArray => 1);
@@ -710,6 +690,7 @@ sub generate {
 
         my %functions;
         my %collectors;
+        do_enums($xcb, \%consts);
         do_typedefs($xcb);
         do_structs($xcb);
         do_events($xcb);
@@ -721,6 +702,17 @@ sub generate {
     close OUT;
     close OUTTM;
     close OUTTD;
+
+    open my $fh_c, '>', 'XCB.inc';
+    print $fh_c "static void boot_constants(HV *stash, AV *tags_all) {\n";
+    printf $fh_c qq/    av_extend(tags_all, %d);\n/, scalar keys %consts;
+    for my $name (keys %consts) {
+        printf $fh_c qq/    newCONSTSUB(stash, "%s", %s);\n/,          $name, $consts{$name};
+        printf $fh_c qq/    av_push(tags_all, newSVpvn("%s", %d));\n/, $name, length $name;
+    }
+    print $fh_c "}\n";
+    close $fh_c;
+
 }
 
 'The One True Value';
