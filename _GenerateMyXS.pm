@@ -93,6 +93,8 @@ my %luachecktype = (
 );
 
 sub mangle($;$) {
+    my ($name, $clean) = @_;
+
     my %simple = (
         CHAR2B        => 1,
         INT64         => 1,
@@ -103,7 +105,6 @@ sub mangle($;$) {
         Family_DECnet => 1,
         DECnet        => 1
     );
-    my ($name, $clean) = @_;
     my $mangled = '';
 
     $mangled = $prefix unless $clean;
@@ -135,14 +136,16 @@ sub mangle($;$) {
 }
 
 sub cname($) {
+    my $name = shift;
+
     my %bad = (
         new      => 1,
         delete   => 1,
         class    => 1,
         operator => 1
     );
-    my $name = shift;
-    return "_$name" if ($bad{$name});
+
+    return "_$name" if $bad{$name};
     return $name;
 }
 
@@ -174,6 +177,7 @@ sub do_push($$;$) {
 
 sub do_structs($) {
     my $xcb = shift;
+
     for my $struct (@{ $xcb->{struct} }) {
         my $name     = $struct->{name};
         my $xcbname  = mangle($name) . '_t';
@@ -259,6 +263,7 @@ sub do_structs($) {
 
 sub do_typedefs($) {
     my $xcb = shift;
+
     for my $tdef (@{ $xcb->{typedef} }) {
         $xcbtype{ $tdef->{newname} }      = $xcbtype{ $tdef->{oldname} };
         $luatype{ $tdef->{newname} }      = $luatype{ $tdef->{oldname} };
@@ -279,13 +284,13 @@ sub do_typedefs($) {
 
 sub get_vartype($) {
     my $type = shift;
+
     return $xcbtype{$type} if (defined($xcbtype{$type}));
     return mangle($type) . "_t";
 }
 
 sub do_requests($\%) {
-    my $xcb  = shift;
-    my $func = shift;
+    my ($xcb, $func)  = @_;
 
     for my $req (@{ $xcb->{request} }) {
         my $mangled  = mangle($req->{name});
