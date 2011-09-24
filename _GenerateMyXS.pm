@@ -369,7 +369,7 @@ sub do_requests($\%)
         }
     }
 
-    print OUT join("\n", uniq @vars) . "\n";
+    print OUT join("\n", map { "    $_" } uniq @vars) . "\n";
 
     print OUT "  PREINIT:\n    HV * hash;\n    $cookie cookie;\n";
 
