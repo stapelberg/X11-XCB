@@ -401,9 +401,7 @@ sub do_requests($\%) {
 
         # Function call
         print OUT "    ";
-        if (defined($req->{reply})) {
-            print OUT "cookie = ";
-        }
+        print OUT "cookie = ";
         print OUT mangle($req->{name}) . "(";
 
         my @params = ('conn->conn');
