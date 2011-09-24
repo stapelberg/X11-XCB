@@ -93,6 +93,56 @@ my %luachecktype = (
     double => 'LUA_TNUMBER',
 );
 
+sub indent (&$@) {
+    my ($code, $level, @input) = @_;
+    my $indent = ' ' x ($level * 4);
+
+    return join "\n", map { $indent . $code->() } @input;
+}
+
+sub tmpl_struct {
+    my ($name, $params, $types) = @_;
+
+    my $constructor = 'new';
+
+    my $param = join ',', @$params;
+    my $param_decl = indent { "$types->{$_} $_" } 1, @$params;
+    my $set_struct = indent { 'buf->' . cname($_) . " = $_;" } 1, @$params;
+
+    return << "__"
+MODULE = X11::XCB PACKAGE = $name
+$name *
+$constructor(self,$param)
+    char *self
+$param_decl
+  PREINIT:
+    $name *buf;
+  CODE:
+    New(0, buf, 1, $name);
+$set_struct
+    RETVAL = buf;
+  OUTPUT:
+    RETVAL
+
+__
+}
+
+sub tmpl_struct_getter {
+    my ($pkg, $name, $type) = @_;
+    my $cname = cname($name);
+
+    return << "__"
+$type
+$name(self)
+    $pkg * self
+  CODE:
+    RETVAL = self->$cname;
+  OUTPUT:
+    RETVAL
+
+__
+}
+
 sub mangle($;$) {
     my ($name, $clean) = @_;
 
@@ -188,29 +238,15 @@ sub do_structs($) {
         print OUTTD " typedef $xcbname $perlname;\n";
         print OUTTM "$perlname * T_PTROBJ\n";
 
-        print OUT "MODULE = X11::XCB PACKAGE = $perlname\n";
-        print OUT "$perlname *\nnew(self,";
-        my @f;
-        for my $field (@{ $struct->{field} }) {
-            push @f, $field->{name};
-        }
-        print OUT (join ',', @f);
-        print OUT ")\n    char *self\n";
+        my @fields;
+        my %type = map {
+            # keep order in @fields
+            push @fields, $_->{name};
 
-#   for my $field (@{$struct->{field}}) {
-#       print OUT "    $field->{name}\n";
-#   }
-        for my $var (@{ $struct->{field} }) {
-            print OUT "    " . get_vartype($var->{type}) . " ";
-            print OUT $var->{name} . "\n";
-        }
+            ( $_->{name} => get_vartype($_->{type}) )
+        } @{ $struct->{field} };
 
-        print OUT "  PREINIT:\n    $perlname *buf;\n";
-        print OUT "  CODE:\n    New(0, buf, 1, $perlname);\n";
-        for my $var (@{ $struct->{field} }) {
-            print OUT "    buf->" . cname($var->{name}) . " = " . ($var->{name}) . ";\n";
-        }
-        print OUT "    RETVAL = buf;\n  OUTPUT:\n    RETVAL\n\n";
+        print OUT tmpl_struct($perlname, \@fields, \%type);
 
         my $dogetter = 1;
 
@@ -226,16 +262,9 @@ sub do_structs($) {
 #       }
         }
 
-        #print OUT "}\n\n";
-
         if ($dogetter) {
             print OUT "MODULE = X11::XCB PACKAGE = $perlname" . "Ptr\n\n";
-            for my $var (@{ $struct->{field} }) {
-                print OUT "" . get_vartype($var->{type}) . "\n";
-                print OUT $var->{name} . "(self)\n";
-                print OUT "    $perlname * self\n";
-                print OUT "  CODE:\n    RETVAL = self->" . cname($var->{name}) . ";\n  OUTPUT:\n    RETVAL\n\n";
-            }
+            print OUT tmpl_struct_getter($perlname, $_, $type{$_}) for @fields;
 
         }
     }
