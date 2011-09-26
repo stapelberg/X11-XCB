@@ -93,11 +93,12 @@ my %luachecktype = (
     double => 'LUA_TNUMBER',
 );
 
+our $level = 1;
 sub indent (&$@) {
-    my ($code, $level, @input) = @_;
+    my ($code, $join, @input) = @_;
     my $indent = ' ' x ($level * 4);
 
-    return join "\n", map { $indent . $code->() } @input;
+    return join $join, map { $indent . $code->() } @input;
 }
 
 sub tmpl_struct {
@@ -106,8 +107,8 @@ sub tmpl_struct {
     my $constructor = 'new';
 
     my $param = join ',', @$params;
-    my $param_decl = indent { "$types->{$_} $_" } 1, @$params;
-    my $set_struct = indent { 'buf->' . cname($_) . " = $_;" } 1, @$params;
+    my $param_decl = indent { "$types->{$_} $_" } "\n", @$params;
+    my $set_struct = indent { 'buf->' . cname($_) . " = $_;" } "\n", @$params;
 
     return << "__"
 MODULE = X11::XCB PACKAGE = $name
@@ -137,6 +138,43 @@ $name(self)
     $pkg * self
   CODE:
     RETVAL = self->$cname;
+  OUTPUT:
+    RETVAL
+
+__
+}
+
+sub tmpl_request {
+    my ($name, $cookie, $params, $types, $xcb_cast, $cleanups) = @_;
+
+    my $param = join ',', ('conn', @$params);
+    my @param = grep { $_ ne '...' } @$params;
+
+    my $param_decl = indent { "$types->{$_} $_" } "\n", @param;
+
+    my $xcb_name = "xcb_$name";
+    my $xcb_param = do {
+        local $level = 0;
+        $xcb_cast->{'conn->conn'} = '';
+        indent { $xcb_cast->{$_} . $_ } ', ', ('conn->conn', @param);
+    };
+    my $cleanup = indent { "free($_);" } "\n", @$cleanups;
+
+    return << "__"
+HV *
+$name($param)
+    XCBConnection *conn
+$param_decl
+  PREINIT:
+    HV * hash;
+    $cookie cookie;
+  CODE:
+    cookie = $xcb_name($xcb_param);
+
+    hash = newHV();
+    hv_store(hash, "sequence", strlen("sequence"), newSViv(cookie.sequence), 0);
+    RETVAL = hash;
+$cleanup
   OUTPUT:
     RETVAL
 
@@ -323,26 +361,15 @@ sub do_requests($\%) {
     my ($xcb, $func)  = @_;
 
     for my $req (@{ $xcb->{request} }) {
-        my $mangled  = xcb_name($req->{name});
-        my $stripped = $mangled;
-        $stripped =~ s/^xcb_//g;
+        my $xcb_name  = xcb_name($req->{name});
+        (my $name = $xcb_name) =~ s/^xcb_//g;
 
-        #print Dumper($req);
-        my $cookie = xcb_name($req->{name}) . "_cookie_t";
-        if (!defined($req->{reply})) {
-            $cookie = "xcb_void_cookie_t";
-        }
+        my $cookie = ($req->{reply} ? $xcb_name : 'xcb_void' ) . '_cookie_t';
 
-        # Function header
-        print OUT "HV *\n";
-        print OUT "$stripped(";
+        my @param_names = map $_->{name}, @{ $req->{field} };
 
-        # all parameter names
-        my @param_names = ('conn');
-
-        push @param_names, $_->{name} for @{ $req->{field} };
         for my $var (@{ $req->{list} }) {
-            if (!defined($var->{fieldref}) && !defined($var->{op}) && !defined($var->{value})) {
+            if (!$var->{fieldref} && !$var->{op} && !$var->{value}) {
                 push @param_names, $var->{name} . "_len";
             }
             push @param_names, $var->{name};
@@ -354,56 +381,39 @@ sub do_requests($\%) {
             push @param_names, '...';
         }
 
-        print OUT (join ',', uniq @param_names);
-        print OUT ")\n";
+        @param_names = uniq @param_names;
 
-        # Declare variables
-#   if (defined($req->{reply})) {
-#       print OUT "    $cookie *cookie;\n";
-#   }
-        print OUT "    XCBConnection *conn\n";
-
-        my @vars;
+        my %type;
         for my $var (@{ $req->{field} }) {
             my $type = get_vartype($var->{type});
             if ($type =~ /^xcb_/) {
                 $type =~ s/^xcb_/XCB/;
             }
-            push @vars, "$type $var->{name}";
+            $type{ $var->{name} } = $type;
         }
 
-        if (defined($req->{list})) {
-            for my $var (@{ $req->{list} }) {
-                if (!defined($var->{fieldref}) && !defined($var->{op}) && !defined($var->{value})) {
-                    print OUT "    int ";
-                    print OUT $var->{name} . "_len\n";
-                }
-                my $type = get_vartype($var->{type});
-                if ($type =~ /^xcb_/) {
-                    $type =~ s/^xcb_([a-z])/XCB\u$1/g;
-                    $type =~ s/_t$//g;
-                }
-
-                $type = 'intArray' if ($type eq 'int');
-
-                # We use char* instead of void* to be able to use pack() in the perl part
-                $type = 'char' if ($type eq 'void');
-
-                push @vars, "$type * $var->{name}";
+        for my $var (@{ $req->{list} }) {
+            if (!$var->{fieldref} && !$var->{op} && !$var->{value}) {
+                $type{ $var->{name} . '_len'} = 'int';
             }
-        }
-        if (defined($req->{valueparam})) {
-            for my $var (@{ $req->{valueparam} }) {
-                push @vars, get_vartype($var->{'value-mask-type'}) . " $var->{'value-mask-name'}";
-                push @vars, "intArray * $var->{'value-list-name'}";
+            my $type = get_vartype($var->{type});
+            if ($type =~ /^xcb_/) {
+                $type =~ s/^xcb_([a-z])/XCB\u$1/g;
+                $type =~ s/_t$//g;
             }
+
+            $type = 'intArray' if ($type eq 'int');
+
+            # We use char* instead of void* to be able to use pack() in the perl part
+            $type = 'char' if ($type eq 'void');
+
+            $type{ $var->{name} } = "$type *";
         }
 
-        print OUT join("\n", map { "    $_" } uniq @vars) . "\n";
-
-        print OUT "  PREINIT:\n    HV * hash;\n    $cookie cookie;\n";
-
-        print OUT "  CODE:\n";
+        for my $var (@{ $req->{valueparam} }) {
+            $type{ $var->{'value-mask-name'} } = get_vartype($var->{'value-mask-type'});
+            $type{ $var->{'value-list-name'} } = 'intArray *';
+        }
 
 #   # Read variables from lua
 #   print OUT "    c = ((xcb_connection_t **)luaL_checkudata(L, 1, \"XCB.display\"))[0];\n";
@@ -429,65 +439,36 @@ sub do_requests($\%) {
 #   }
 #   print OUT "\n";
 
-        # Function call
-        print OUT "    ";
-        print OUT "cookie = ";
-        print OUT xcb_name($req->{name}) . "(";
 
-        my @params = ('conn->conn');
-
-        map { push @params, $_->{name} } @{ $req->{field} };
-
-        if (defined($req->{list})) {
-            for my $var (@{ $req->{list} }) {
-                if (!defined($var->{fieldref}) && !defined($var->{op}) && !defined($var->{value})) {
-                    push @params, $var->{name} . '_len';
-                }
-                my $type = $var->{type};
-                $type = $exacttype{$type} if (defined($exacttype{$type}));
-                my $t = '';
-                if ((my $type_name, my $int_len) = ($type =~ /(INT|CARD)(8|16|32)/)) {
-                    $t = " (const uint" . $int_len . "_t*)";
-                }
-                if ($var->{type} eq 'BYTE') {
-                    $t = " (const uint8_t*)";
-                }
-                push @params, $t . $var->{name};
+        my %xcb_cast;
+        @xcb_cast{ @param_names } = ('') x @param_names;
+        for my $var (@{ $req->{list} }) {
+            my $type = $var->{type};
+            $type = $exacttype{$type} if (defined($exacttype{$type}));
+            my $t = '';
+            if ((my $type_name, my $int_len) = ($type =~ /(INT|CARD)(8|16|32)/)) {
+                $t = " (const uint" . $int_len . "_t*)";
             }
-        }
-        if (defined($req->{valueparam})) {
-            for my $var (@{ $req->{valueparam} }) {
-                push @params, $var->{'value-mask-name'};
-                push @params, $var->{'value-list-name'};
+            if ($var->{type} eq 'BYTE') {
+                $t = " (const uint8_t*)";
             }
+            $xcb_cast{ $var->{name} } = $t;
         }
 
-        print OUT join(', ', uniq @params) . ");\n\n";
-
-        print OUT "    hash = newHV();\n    hv_store(hash, \"sequence\", strlen(\"sequence\"), newSViv(cookie.sequence), 0);\n";
-        print OUT "    RETVAL = hash;\n";
-
+        my @cleanup;
         # Cleanup
-        if (defined($req->{list})) {
-            for my $var (@{ $req->{list} }) {
-                if ($var->{type} ne 'char' and $var->{type} ne 'void') {
-                    print OUT "    free(" . $var->{name} . ");\n";
-                }
+        for my $var (@{ $req->{list} }) {
+            if ($var->{type} ne 'char' and $var->{type} ne 'void') {
+                push @cleanup, $var->{name};
             }
         }
 
-        if (defined($req->{valueparam})) {
-            for my $var (@{ $req->{valueparam} }) {
-                print OUT "    free(" . $var->{'value-list-name'} . ");\n";
-            }
+        for my $var (@{ $req->{valueparam} }) {
+            push @cleanup, $var->{'value-list-name'};
         }
 
-        my $retcount = 0;
-        $retcount = 1 if (defined($req->{reply}));
-        print OUT "  OUTPUT:\n    RETVAL\n\n";
+        print OUT tmpl_request($name, $cookie, \@param_names, \%type, \%xcb_cast, \@cleanup);
 
-        my $manglefunc = xcb_name($req->{name}, 1);
-        $func->{$manglefunc} = $req->{name};
     }
 }
 
@@ -708,6 +689,7 @@ sub generate {
     }
 
     for my $path (@files) {
+        print "Processing $path\n";
         my $xcb = XMLin("$path", KeyAttr => undef, ForceArray => 1);
         my $name = $xcb->{header};
 
