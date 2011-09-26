@@ -273,47 +273,50 @@ sub do_push($$;$) {
     }
 }
 
-sub do_structs($) {
-    my $xcb = shift;
+sub on_field {
+    my ($fields, $types) = @_;
 
-    for my $struct (@{ $xcb->{struct} }) {
-        my $name     = $struct->{name};
-        my $xcbname  = xcb_name($name) . '_t';
-        my $perlname = $xcbname;
-        $perlname =~ s/^xcb_([a-z])/XCB\u$1/g;
-        $perlname =~ s/_t$//g;
-        print OUTTD " typedef $xcbname $perlname;\n";
-        print OUTTM "$perlname * T_PTROBJ\n";
+    on field => sub {
+        my $name = $_->{name};
+        push @$fields, $_->{name};
+        $types->{$name} = get_vartype($_->{type});
+    }
+}
 
-        my @fields;
-        my %type = map {
-            # keep order in @fields
-            push @fields, $_->{name};
+sub do_structs {
+    my $name     = $_->{name};
+    my $xcbname  = xcb_name($name) . '_t';
+    my $perlname = $xcbname;
+    $perlname =~ s/^xcb_([a-z])/XCB\u$1/g;
+    $perlname =~ s/_t$//g;
+    print OUTTD " typedef $xcbname $perlname;\n";
+    print OUTTM "$perlname * T_PTROBJ\n";
 
-            ( $_->{name} => get_vartype($_->{type}) )
-        } @{ $struct->{field} };
+    my (@fields, %type);
+    on_field(\@fields, \%type);
 
-        print OUT tmpl_struct($perlname, \@fields, \%type);
+    my $dogetter = 1;
 
-        my $dogetter = 1;
+    my %nostatic = (    # These structs are used from the base protocol
+        xcb_setup_t => 1,
+    );
 
-        my %nostatic = (    # These structs are used from the base protocol
-            xcb_setup_t => 1,
-        );
-
-        if ($struct->{list}) {
-            $dogetter = 0;    # If it has a list, the get half shouldn't (can't?) be needed.
+    on list => sub {
+        $dogetter = 0;    # If it has a list, the get half shouldn't (can't?) be needed.
 
 #       for my $list (@{$struct->{list}}) {
 #       do_push_list(1, $name, $list->{type}, $list->{name}, $list->{value});
 #       }
-        }
+    };
 
-        if ($dogetter) {
-            print OUT "MODULE = X11::XCB PACKAGE = $perlname" . "Ptr\n\n";
-            print OUT tmpl_struct_getter($perlname, $_, $type{$_}) for @fields;
+    walk;
 
-        }
+    print OUT tmpl_struct($perlname, \@fields, \%type);
+
+    if ($dogetter) {
+        print OUT "MODULE = X11::XCB PACKAGE = $perlname" . "Ptr\n\n";
+        print OUT tmpl_struct_getter($perlname, $_, $type{$_}) for @fields;
+
     }
 
 #    for my $union (@{$xcb->{union}}) {
@@ -681,13 +684,13 @@ sub generate {
             # on [ qw/enum event eventcopy error errorcopy/ ] => \&do_enums;
             on enum => \&do_enums;
             on [ qw/typedef xidtype xidunion/ ] => \&do_typedefs;
+            on struct => \&do_structs;
             walk;
         };
         walk;
 
         my %functions;
         my %collectors;
-        do_structs($xcb);
         do_events($xcb);
         print OUT "MODULE = X11::XCB PACKAGE = XCBConnectionPtr\n";
         do_requests($xcb, %functions);
