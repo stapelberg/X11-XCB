@@ -338,24 +338,19 @@ sub do_structs($) {
 #    }
 }
 
-sub do_typedefs($) {
-    my $xcb = shift;
+sub do_typedefs {
+    my $e = shift;
 
-    for my $tdef (@{ $xcb->{typedef} }) {
-        $xcbtype{ $tdef->{newname} }      = $xcbtype{ $tdef->{oldname} };
-        $luatype{ $tdef->{newname} }      = $luatype{ $tdef->{oldname} };
-        $luachecktype{ $tdef->{newname} } = $luachecktype{ $tdef->{oldname} };
-        $exacttype{ $tdef->{newname} }      = $tdef->{oldname};
+    if ($e eq 'typedef') {
+        $xcbtype{ $_->{newname} }      = $xcbtype{ $_->{oldname} };
+        $luatype{ $_->{newname} }      = $luatype{ $_->{oldname} };
+        $luachecktype{ $_->{newname} } = $luachecktype{ $_->{oldname} };
+        $exacttype{ $_->{newname} }    = $_->{oldname};
     }
-    for my $tdef (@{ $xcb->{xidtype} }) {
-        $xcbtype{ $tdef->{name} }      = $xcbtype{CARD32};
-        $luatype{ $tdef->{name} }      = $luatype{CARD32};
-        $luachecktype{ $tdef->{name} } = $luachecktype{CARD32};
-    }
-    for my $tdef (@{ $xcb->{xidunion} }) {
-        $xcbtype{ $tdef->{name} }      = $xcbtype{CARD32};
-        $luatype{ $tdef->{name} }      = $luatype{CARD32};
-        $luachecktype{ $tdef->{name} } = $luachecktype{CARD32};
+    elsif ($e =~ /^(?:xidtype|xidunion)/) {
+        $xcbtype{ $_->{name} }      = $xcbtype{CARD32};
+        $luatype{ $_->{name} }      = $luatype{CARD32};
+        $luachecktype{ $_->{name} } = $luachecktype{CARD32};
     }
 }
 
@@ -627,38 +622,12 @@ sub do_enums {
         };
         walk;
 
-    } elsif ($tag eq 'event') {
-        my $name = uc(xcb_name($_->{name}, 1));
-        $consts{$name} = "newSViv(XCB_$name)";
     }
+#    elsif ($tag =~ /^(?:event|eventcopy|error|errorcopy)$/) {
+#        my $number = $_->{number};
+#        $consts{$name} = "newSViv($number)";
+#    }
 
-    #
-    #for my $event (@{$xcb->{eventcopy}}) {
-    #    my $name = $event->{name};
-    #    my $number = $event->{number};
-    #    print OUT "    lua_pushinteger(L, $number);\n";
-    #    print OUT "    lua_setfield(L, -2, \"$name\");\n";
-    #}
-    #print OUT "    lua_setfield(L, -2, \"event\");\n";
-    #
-    ## Errors
-    #print OUT "\n    lua_newtable(L);\n";
-    #for my $error (@{$xcb->{error}}) {
-    #    my $name = $error->{name};
-    #    my $number = $error->{number};
-    #    print OUT "    lua_pushinteger(L, $number);\n";
-    #    print OUT "    lua_setfield(L, -2, \"$name\");\n";
-    #}
-    #
-    #for my $error (@{$xcb->{errorcopy}}) {
-    #    my $name = $error->{name};
-    #    my $number = $error->{number};
-    #    print OUT "    lua_pushinteger(L, $number);\n";
-    #    print OUT "    lua_setfield(L, -2, \"$name\");\n";
-    #}
-    #print OUT "    lua_setfield(L, -2, \"error\");\n";
-    #
-    #print OUT "}\n\n";
 }
 
 sub generate {
@@ -709,15 +678,15 @@ sub generate {
 
             $prefix = $name eq 'xproto' ? 'xcb_' : "${name}_";
 
-            on [ qw/enum event/ ] => \&do_enums;
+            # on [ qw/enum event eventcopy error errorcopy/ ] => \&do_enums;
+            on enum => \&do_enums;
+            on [ qw/typedef xidtype xidunion/ ] => \&do_typedefs;
             walk;
         };
         walk;
 
         my %functions;
         my %collectors;
-        #do_enums($xcb, \%consts);
-        do_typedefs($xcb);
         do_structs($xcb);
         do_events($xcb);
         print OUT "MODULE = X11::XCB PACKAGE = XCBConnectionPtr\n";
