@@ -31,6 +31,8 @@ requires 'Try::Tiny';
 
 # needed for the XS-autogeneration
 author_requires 'XML::Simple';
+author_requires 'XML::Descent';
+author_requires 'Data::Dump';
 author_requires 'List::MoreUtils';
 author_requires 'autodie';
 

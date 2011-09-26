@@ -15,7 +15,7 @@ use warnings;
 use strict;
 use v5.10;
 use autodie;
-use Data::Dumper;
+use Data::Dump;
 use File::Basename qw(basename);
 use List::Util qw(first);
 use List::MoreUtils qw(uniq);
@@ -23,6 +23,14 @@ use Try::Tiny;
 use ExtUtils::PkgConfig;
 
 use XML::Simple qw(:strict);
+
+use XML::Descent;
+my $parser;
+sub on {
+    my ($tag, $code) = @_;
+    $parser->on($tag => sub { $code->(@_) for $_[1] });
+}
+sub walk { $parser->walk }
 
 # reads in a whole file
 sub slurp {
@@ -37,6 +45,7 @@ sub spit {
 }
 
 my $prefix = 'xcb_';
+my %consts;
 
 # In contrary to %xcbtype, which only holds basic data types like 'int', 'char'
 # and so on, the %exacttype hash holds the real type name, like INT16 or CARD32
@@ -511,6 +520,8 @@ sub do_replies($\%\%) {
     for my $req (@{ $xcb->{request} }) {
         my $rep = $req->{reply};
         next unless defined($rep);
+        # request should return a cookie object, blessed into the right pkg
+        # $perlname should be set fixed to 'reply'
 
         my $name     = xcb_name($req->{name}) . "_reply";
         my $reply    = xcb_name($req->{name}) . "_reply_t";
@@ -605,21 +616,20 @@ sub do_replies($\%\%) {
 }
 
 sub do_enums {
-    my ($xcb, $consts) = @_;
+    my ($tag, $attr) = @_;
 
-    for my $enum (@{ $xcb->{enum} }) {
-        my $name = uc(xcb_name($enum->{name}, 1));
-        for my $item (@{ $enum->{item} }) {
-            my $tname = $name . "_" . uc(xcb_name($item->{name}, 1));
-            $consts->{$tname} = "newSViv(XCB_$tname)";
-        }
-    }
+    my $name = uc(xcb_name($attr->{name}, 1));
 
-    # Events
-    for my $event (@{ $xcb->{event} }) {
-        my $number = $event->{number};
-        my $name = uc(xcb_name($event->{name}, 1));
-        $consts->{$name} = "newSViv(XCB_$name)";
+    if ($tag eq 'enum') {
+        on item => sub {
+            my $tname = $name . "_" . uc(xcb_name($_->{name}, 1));
+            $consts{$tname} = "newSViv(XCB_$tname)";
+        };
+        walk;
+
+    } elsif ($tag eq 'event') {
+        my $name = uc(xcb_name($_->{name}, 1));
+        $consts{$name} = "newSViv(XCB_$name)";
     }
 
     #
@@ -676,7 +686,6 @@ sub generate {
     print OUTTM "X11_XCB_ICCCM_WMHints * T_PTROBJ\n";
     print OUTTM "X11_XCB_ICCCM_SizeHints * T_PTROBJ\n";
 
-    my %consts;
     # Our own additions: EWMH constants
     $consts{_NET_WM_STATE_ADD}    = 'newSViv(1)';
     $consts{_NET_WM_STATE_REMOVE} = 'newSViv(0)';
@@ -689,19 +698,25 @@ sub generate {
     }
 
     for my $path (@files) {
-        print "Processing $path\n";
         my $xcb = XMLin("$path", KeyAttr => undef, ForceArray => 1);
-        my $name = $xcb->{header};
 
-        if ($name eq 'xproto') {
-            $prefix = 'xcb_';
-        } else {
-            $prefix = "xcb_${name}_";
-        }
+        $parser = XML::Descent->new({ Input => $path });
+
+        on xcb => sub {
+            my ($e, $attr) = @_;
+            my $name = $attr->{header};
+            print "Processing $name: $path\n";
+
+            $prefix = $name eq 'xproto' ? 'xcb_' : "${name}_";
+
+            on [ qw/enum event/ ] => \&do_enums;
+            walk;
+        };
+        walk;
 
         my %functions;
         my %collectors;
-        do_enums($xcb, \%consts);
+        #do_enums($xcb, \%consts);
         do_typedefs($xcb);
         do_structs($xcb);
         do_events($xcb);
@@ -717,7 +732,7 @@ sub generate {
     open my $fh_c, '>', 'XCB.inc';
     print $fh_c "static void boot_constants(HV *stash, AV *tags_all) {\n";
     printf $fh_c qq/    av_extend(tags_all, %d);\n/, scalar keys %consts;
-    for my $name (keys %consts) {
+    for my $name (sort keys %consts) {
         printf $fh_c qq/    newCONSTSUB(stash, "%s", %s);\n/,          $name, $consts{$name};
         printf $fh_c qq/    av_push(tags_all, newSVpvn("%s", %d));\n/, $name, length $name;
     }
