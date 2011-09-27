@@ -679,7 +679,7 @@ sub generate {
             my $name = $attr->{header};
             print "Processing $name: $path\n";
 
-            $prefix = $name eq 'xproto' ? 'xcb_' : "${name}_";
+            $prefix = $name eq 'xproto' ? 'xcb_' : "xcb_${name}_";
 
             # on [ qw/enum event eventcopy error errorcopy/ ] => \&do_enums;
             on enum => \&do_enums;
