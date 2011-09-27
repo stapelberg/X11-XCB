@@ -50,6 +50,10 @@ sub spit {
 my $prefix = 'xcb_';
 my %const;
 
+# since we no longer do multiple passes over the xml,
+# keep the order in those arrays and print them as whole
+my (@struct, @request);
+
 # In contrary to %xcbtype, which only holds basic data types like 'int', 'char'
 # and so on, the %exacttype hash holds the real type name, like INT16 or CARD32
 # for any type which has been specified in the XML definition. For example,
@@ -282,7 +286,10 @@ sub on_field {
     on field => sub {
         my $name = $_->{name};
         push @$fields, $_->{name};
-        $types->{$name} = get_vartype($_->{type});
+
+        my $type = get_vartype($_->{type});
+        $type =~ s/^xcb_/XCB/;
+        $types->{$name} = $type;
     }
 }
 
@@ -290,6 +297,7 @@ sub do_structs {
     my $name     = $_->{name};
     my $xcbname  = xcb_name($name) . '_t';
     my $perlname = $xcbname;
+
     $perlname =~ s/^xcb_([a-z])/XCB\u$1/g;
     $perlname =~ s/_t$//g;
     print OUTTD " typedef $xcbname $perlname;\n";
@@ -314,11 +322,11 @@ sub do_structs {
 
     walk;
 
-    print OUT tmpl_struct($perlname, \@fields, \%type);
+    push @struct, tmpl_struct($perlname, \@fields, \%type);
 
     if ($dogetter) {
-        print OUT "MODULE = X11::XCB PACKAGE = $perlname" . "Ptr\n\n";
-        print OUT tmpl_struct_getter($perlname, $_, $type{$_}) for @fields;
+        push @struct, "MODULE = X11::XCB PACKAGE = $perlname" . "Ptr\n\n";
+        push @struct, tmpl_struct_getter($perlname, $_, $type{$_}) for @fields;
 
     }
 
@@ -367,63 +375,59 @@ sub get_vartype($) {
     return xcb_name($type) . "_t";
 }
 
-sub do_requests($\%) {
-    my ($xcb, $func)  = @_;
+sub do_requests {
+    my $xcb_name  = xcb_name($_->{name});
+    (my $name = $xcb_name) =~ s/^xcb_//g;
 
-    for my $req (@{ $xcb->{request} }) {
-        my $xcb_name  = xcb_name($req->{name});
-        (my $name = $xcb_name) =~ s/^xcb_//g;
+    my (@param, %type, %xcb_cast, @cleanup);
 
-        my $cookie = ($req->{reply} ? $xcb_name : 'xcb_void' ) . '_cookie_t';
+    on_field(\@param, \%type);
 
-        my @param_names = map $_->{name}, @{ $req->{field} };
+    on list => sub {
+        my $param = $_->{name};
+        my $x_type = $_->{type};
 
-        for my $var (@{ $req->{list} }) {
-            if (!$var->{fieldref} && !$var->{op} && !$var->{value}) {
-                push @param_names, $var->{name} . "_len";
-            }
-            push @param_names, $var->{name};
+        my $push_len = 1;
+        on [ qw/fieldref op value/ ] => sub { $push_len = 0 };
+        walk;
+
+        push @param, $param . '_len' if $push_len;
+        push @param, $param;
+
+        my $type = get_vartype($x_type);
+        $type =~ s/^xcb_([a-z].+)_t$/XCB\u$1/g;
+
+        $type = 'intArray' if $type eq 'int';
+
+        # We use char* instead of void* to be able to use pack() in the perl part
+        $type = 'char' if $type eq 'void';
+
+        $type{$param} = "$type *";
+        $type{$param . '_len'} = 'int' if $push_len;
+
+        my $x_deftype = $exacttype{$x_type} || $x_type;
+        my $t = '';
+        if (my ($type_name, $int_len) = $x_deftype =~ /^(INT|CARD)(8|16|32)$/) {
+            $t = " (const uint" . $int_len . "_t*)";
         }
-
-        for my $var (@{ $req->{valueparam} }) {
-            push @param_names, $var->{'value-mask-name'};
-            push @param_names, $var->{'value-list-name'};
-            push @param_names, '...';
+        if ($x_type eq 'BYTE') {
+            $t = " (const uint8_t*)";
         }
+        $xcb_cast{$param} = $t;
 
-        @param_names = uniq @param_names;
+        push @cleanup, $param unless $type =~ /^(?:char|void)$/;
+    };
 
-        my %type;
-        for my $var (@{ $req->{field} }) {
-            my $type = get_vartype($var->{type});
-            if ($type =~ /^xcb_/) {
-                $type =~ s/^xcb_/XCB/;
-            }
-            $type{ $var->{name} } = $type;
-        }
+    on valueparam => sub {
+        my ($mask, $list, $type) = @{$_}{qw/value-mask-name value-list-name value-mask-type/};
+        push @param, $mask, $list;
+        push @param, '...';
 
-        for my $var (@{ $req->{list} }) {
-            if (!$var->{fieldref} && !$var->{op} && !$var->{value}) {
-                $type{ $var->{name} . '_len'} = 'int';
-            }
-            my $type = get_vartype($var->{type});
-            if ($type =~ /^xcb_/) {
-                $type =~ s/^xcb_([a-z])/XCB\u$1/g;
-                $type =~ s/_t$//g;
-            }
+        $type{$mask} = get_vartype($type);
+        $type{$list} = 'intArray *';
 
-            $type = 'intArray' if ($type eq 'int');
-
-            # We use char* instead of void* to be able to use pack() in the perl part
-            $type = 'char' if ($type eq 'void');
-
-            $type{ $var->{name} } = "$type *";
-        }
-
-        for my $var (@{ $req->{valueparam} }) {
-            $type{ $var->{'value-mask-name'} } = get_vartype($var->{'value-mask-type'});
-            $type{ $var->{'value-list-name'} } = 'intArray *';
-        }
+        push @cleanup, $list;
+    };
 
 #   # Read variables from lua
 #   print OUT "    c = ((xcb_connection_t **)luaL_checkudata(L, 1, \"XCB.display\"))[0];\n";
@@ -450,36 +454,16 @@ sub do_requests($\%) {
 #   print OUT "\n";
 
 
-        my %xcb_cast;
-        @xcb_cast{ @param_names } = ('') x @param_names;
-        for my $var (@{ $req->{list} }) {
-            my $type = $var->{type};
-            $type = $exacttype{$type} if (defined($exacttype{$type}));
-            my $t = '';
-            if ((my $type_name, my $int_len) = ($type =~ /(INT|CARD)(8|16|32)/)) {
-                $t = " (const uint" . $int_len . "_t*)";
-            }
-            if ($var->{type} eq 'BYTE') {
-                $t = " (const uint8_t*)";
-            }
-            $xcb_cast{ $var->{name} } = $t;
-        }
+    my $cookie;
+    on reply => sub { $cookie = $xcb_name . '_cookie_t'; 'do_reply(@_)' };
+    walk;
 
-        my @cleanup;
-        # Cleanup
-        for my $var (@{ $req->{list} }) {
-            if ($var->{type} ne 'char' and $var->{type} ne 'void') {
-                push @cleanup, $var->{name};
-            }
-        }
+    $cookie ||= 'xcb_void_cookie_t';
+    @param = uniq @param;
+    $xcb_cast{$_} ||= '' for @param;
 
-        for my $var (@{ $req->{valueparam} }) {
-            push @cleanup, $var->{'value-list-name'};
-        }
+    push @request, tmpl_request($name, $cookie, \@param, \%type, \%xcb_cast, \@cleanup);
 
-        print OUT tmpl_request($name, $cookie, \@param_names, \%type, \%xcb_cast, \@cleanup);
-
-    }
 }
 
 sub do_events($) {
@@ -629,10 +613,9 @@ sub do_enums {
         walk;
 
     }
-#    elsif ($tag =~ /^(?:event|eventcopy|error|errorcopy)$/) {
-#        my $number = $_->{number};
-#        $const{$name} = "newSViv($number)";
-#    }
+    elsif ($tag eq 'event') { # =~ /^(?:event|eventcopy|error|errorcopy)$/) {
+        $const{$name} = "newSViv(XCB_$name)";
+    }
 
 }
 
@@ -685,20 +668,26 @@ sub generate {
 
             $prefix = $name eq 'xproto' ? 'xcb_' : "xcb_${name}_";
 
-            # on [ qw/enum event eventcopy error errorcopy/ ] => \&do_enums;
-            on enum => \&do_enums;
+            on [ qw/enum event eventcopy error errorcopy/ ] => \&do_enums;
             on [ qw/typedef xidtype xidunion/ ] => \&do_typedefs;
             on struct => \&do_structs;
+            on request => \&do_requests;
             walk;
         };
         walk;
 
-        my %functions;
-        my %collectors;
+        print OUT @struct;
+        undef @struct;
+
         do_events($xcb);
+
         print OUT "MODULE = X11::XCB PACKAGE = XCBConnectionPtr\n";
-        do_requests($xcb, %functions);
-        do_replies($xcb, %functions, %collectors);
+        print OUT @request;
+        undef @request;
+
+        &do_replies($xcb);
+
+
     }
 
     close OUT;
