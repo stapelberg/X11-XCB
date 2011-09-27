@@ -18,7 +18,6 @@ use autodie;
 use Data::Dump;
 use File::Basename qw(basename);
 use List::Util qw(first);
-use List::MoreUtils qw(uniq);
 use Try::Tiny;
 use ExtUtils::PkgConfig;
 
@@ -342,7 +341,11 @@ sub do_requests {
     # TODO: ideally this would be a hashref eg. C< { bitname => "value", … } >
     on valueparam => sub {
         my ($mask, $list, $type) = @{$_}{qw/value-mask-name value-list-name value-mask-type/};
-        push @param, $mask, $list;
+        push @param, $mask
+        # eg. ConfigureWindow already specifies the mask via <field />
+            unless ($param[-1] || '') eq $mask;
+
+        push @param, $list;
         push @param, '...';
 
         $type{$mask} = get_vartype($type);
@@ -356,7 +359,6 @@ sub do_requests {
     walk;
 
     $cookie ||= 'xcb_void_cookie_t';
-    @param = uniq @param;
     $xcb_cast{$_} ||= '' for @param;
 
     push @request, tmpl_request($name, $cookie, \@param, \%type, \%xcb_cast, \@cleanup);

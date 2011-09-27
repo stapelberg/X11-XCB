@@ -33,7 +33,6 @@ requires 'Try::Tiny';
 author_requires 'XML::Simple';
 author_requires 'XML::Descent';
 author_requires 'Data::Dump';
-author_requires 'List::MoreUtils';
 author_requires 'autodie';
 
 if ($Module::Install::AUTHOR) {
