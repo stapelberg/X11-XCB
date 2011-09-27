@@ -36,13 +36,9 @@ author_requires 'Data::Dump';
 author_requires 'List::MoreUtils';
 author_requires 'autodie';
 
-if ($ENV{MI_AUTHOR} or $Module::Install::AUTHOR) {
-    my %xcb = $PC->find('xcb');
-    my %xcb_xinerama = $PC->find('xcb-xinerama');
-    my $xml_path = $PC->variable('xcb-proto', 'xcbincludedir');
-
+if ($Module::Install::AUTHOR) {
     require _GenerateMyXS;
-    _GenerateMyXS::generate($xml_path, qw/xproto.xml xinerama.xml/);
+    _GenerateMyXS::generate();
 }
 
 WriteAll;

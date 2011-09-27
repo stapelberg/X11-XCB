@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 # vim:ts=4:sw=4:expandtab
 
 # Known bugs:
@@ -634,7 +634,8 @@ sub do_enums {
 }
 
 sub generate {
-    my ($path, @xcb_xmls) = @_;
+    my $path = ExtUtils::PkgConfig->variable('xcb-proto', 'xcbincludedir');
+    my @xcb_xmls = qw/xproto.xml xinerama.xml/;
 
     -d $path or die "$path: $!\n";
 
@@ -670,6 +671,7 @@ sub generate {
     }
 
     for my $path (@files) {
+        say "Processing: $path";
         my $xcb = XMLin("$path", KeyAttr => undef, ForceArray => 1);
 
         $parser = XML::Descent->new({ Input => $path });
@@ -677,7 +679,6 @@ sub generate {
         on xcb => sub {
             my ($e, $attr) = @_;
             my $name = $attr->{header};
-            print "Processing $name: $path\n";
 
             $prefix = $name eq 'xproto' ? 'xcb_' : "xcb_${name}_";
 
@@ -713,7 +714,7 @@ sub generate {
 
 }
 
-'The One True Value';
+() = $0 eq __PACKAGE__ . '.pm' and generate()
 
 # Copyright (C) 2009 Michael Stapelberg <michael at stapelberg dot de>
 # Copyright (C) 2007 Hummingbird Ltd. All Rights Reserved.
