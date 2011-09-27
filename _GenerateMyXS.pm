@@ -77,38 +77,6 @@ my %xcbtype = (
     double => 'double',
 );
 
-my %luatype = (
-    BOOL   => 'boolean',
-    BYTE   => 'integer',
-    CARD8  => 'integer',
-    CARD16 => 'integer',
-    CARD32 => 'integer',
-    INT8   => 'integer',
-    INT16  => 'integer',
-    INT32  => 'integer',
-
-    char   => 'integer',
-    void   => 'integer',    # Hack, to partly support ChangeProperty, until we can reverse 'op'.
-    float  => 'number',
-    double => 'number',
-);
-
-my %luachecktype = (
-    BOOL   => 'LUA_TBOOLEAN',
-    BYTE   => 'LUA_TNUMBER',
-    CARD8  => 'LUA_TNUMBER',
-    CARD16 => 'LUA_TNUMBER',
-    CARD32 => 'LUA_TNUMBER',
-    INT8   => 'LUA_TNUMBER',
-    INT16  => 'LUA_TNUMBER',
-    INT32  => 'LUA_TNUMBER',
-
-    char   => 'LUA_TNUMBER',
-    void   => 'LUA_TNIL',
-    float  => 'LUA_TNUMBER',
-    double => 'LUA_TNUMBER',
-);
-
 our $level = 1;
 sub indent (&$@) {
     my ($code, $join, @input) = @_;
@@ -254,32 +222,6 @@ sub cname($) {
     return $name;
 }
 
-sub do_push($$;$) {
-    my $indent = ' ' x ((shift) * 4);
-    my $type   = shift;
-    my $name   = shift;
-
-    my $base;
-
-    if (defined($name)) {
-        $base = "x->" . cname($name);
-    } else {
-        $base = "i.data";
-    }
-
-    if ($luatype{$type}) {
-
-        # elemental type
-        $base = '*' . $base if (!defined($name));
-        print OUT $indent . "lua_push" . $luatype{$type} . "(L, $base);\n";
-    } else {
-
-        # complex type
-        $base = '&' . $base if (defined($name));
-        print OUT $indent . "push_$type(L, $base);\n";
-    }
-}
-
 sub on_field {
     my ($fields, $types) = @_;
 
@@ -312,13 +254,13 @@ sub do_structs {
         xcb_setup_t => 1,
     );
 
+    # TODO: unimplemented
     on list => sub {
         $dogetter = 0;    # If it has a list, the get half shouldn't (can't?) be needed.
-
-#       for my $list (@{$struct->{list}}) {
-#       do_push_list(1, $name, $list->{type}, $list->{name}, $list->{value});
-#       }
     };
+
+    # TODO: unimplemented
+    # on union => sub { on [ qw/field list/ ] => sub {} };
 
     walk;
 
@@ -330,26 +272,6 @@ sub do_structs {
 
     }
 
-#    for my $union (@{$xcb->{union}}) {
-#   my $name = $union->{name};
-#   my $xcbname = xcb_name($name).'_t';
-#
-#   print OUT "static ";
-#   print OUT "void push_$name (lua_State *L, const $xcbname *x)\n";
-#   print OUT "{\n";
-#   print OUT "    lua_newtable(L);\n";
-#   for my $field (@{$union->{field}}) {
-#       my $fn = $field->{name};
-#       do_push(1, $field->{type}, $fn);
-#       print OUT "    lua_setfield(L, -2, \"$fn\");\n";
-#   }
-#   if ($union->{list}) {
-#       for my $list (@{$union->{list}}) {
-#       do_push_list(1, $name, $list->{type}, $list->{name}, $list->{value});
-#       }
-#   }
-#   print OUT "}\n\n";
-#    }
 }
 
 sub do_typedefs {
@@ -357,14 +279,10 @@ sub do_typedefs {
 
     if ($e eq 'typedef') {
         $xcbtype{ $_->{newname} }      = $xcbtype{ $_->{oldname} };
-        $luatype{ $_->{newname} }      = $luatype{ $_->{oldname} };
-        $luachecktype{ $_->{newname} } = $luachecktype{ $_->{oldname} };
         $exacttype{ $_->{newname} }    = $_->{oldname};
     }
     elsif ($e =~ /^(?:xidtype|xidunion)/) {
         $xcbtype{ $_->{name} }      = $xcbtype{CARD32};
-        $luatype{ $_->{name} }      = $luatype{CARD32};
-        $luachecktype{ $_->{name} } = $luachecktype{CARD32};
     }
 }
 
@@ -383,6 +301,8 @@ sub do_requests {
 
     on_field(\@param, \%type);
 
+    # array length
+    # TODO : rid _len from parameters, use XS to get the length of strings, etc
     on list => sub {
         my $param = $_->{name};
         my $x_type = $_->{type};
@@ -418,6 +338,8 @@ sub do_requests {
         push @cleanup, $param unless $type =~ /^(?:char|void)$/;
     };
 
+    # bitmask -> list of value.
+    # TODO: ideally this would be a hashref eg. C< { bitname => "value", … } >
     on valueparam => sub {
         my ($mask, $list, $type) = @{$_}{qw/value-mask-name value-list-name value-mask-type/};
         push @param, $mask, $list;
@@ -428,31 +350,6 @@ sub do_requests {
 
         push @cleanup, $list;
     };
-
-#   # Read variables from lua
-#   print OUT "    c = ((xcb_connection_t **)luaL_checkudata(L, 1, \"XCB.display\"))[0];\n";
-#   my $index = 1;
-#   for my $var (@{$req->{field}}) {
-#       do_get(++$index, $var->{type}, $var->{name});
-#   }
-#   if (defined($req->{list})) {
-#       for my $var (@{$req->{list}}) {
-#       if (!defined($var->{fieldref}) && !defined($var->{op}) && !defined($var->{value})) {
-#           # do_get(++$index, 'CARD32', $var->{name}."_len");
-#           do_get_list(++$index, $var->{type}, $var->{name}, 1);
-#       } else {
-#           do_get_list(++$index, $var->{type}, $var->{name});
-#       }
-#       }
-#   }
-#   if (defined($req->{valueparam})) {
-#       for my $var (@{$req->{valueparam}}) {
-#       do_get(++$index, $var->{'value-mask-type'}, $var->{'value-mask-name'});
-#       do_get_list(++$index, 'CARD32', $var->{'value-list-name'});
-#       }
-#   }
-#   print OUT "\n";
-
 
     my $cookie;
     on reply => sub { $cookie = $xcb_name . '_cookie_t'; 'do_reply(@_)' };
@@ -471,32 +368,6 @@ sub do_events($) {
     my %events;
 
     # TODO: events
-
-#    for my $event (@{$xcb->{event}}) {
-#   my $xcbev = xcb_name($event->{name})."_event_t";
-#   print OUT "/* This function adds the remaining fields into the table\n  that is on the top of the stack */\n";
-#   print OUT "static void set_";
-#   print OUT $event->{name};
-#   print OUT "(lua_State *L, xcb_generic_event_t *event)\n{\n";
-#   print OUT "    $xcbev *x = ($xcbev *)event;\n";
-#   for my $var (@{$event->{field}}) {
-#       my $name = $var->{name};
-#       do_push(1, $var->{type}, $name);
-#       print OUT "    lua_setfield(L, -2, \"$name\");\n";
-#   }
-#   print OUT "}\n\n";
-#   $events{$event->{number}} = 'set_'.$event->{name};
-#    }
-#
-#    for my $event (@{$xcb->{eventcopy}}) {
-#   $events{$event->{number}} = 'set_'.$event->{ref};
-#    }
-#
-#    print OUT "static void init_events()\n{\n";
-#    for my $i (sort { $a <=> $b } keys %events) {
-#   print OUT "    RegisterEvent($i, $events{$i});\n";
-#    }
-#    print OUT "}\n\n";
 }
 
 sub do_replies($\%\%) {
