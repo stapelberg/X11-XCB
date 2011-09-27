@@ -40,12 +40,15 @@ sub slurp {
 }
 
 sub spit {
-    open my $fh, '>', shift;
+    my $file = shift;
+    open my $fh, '>', $file;
     print $fh @_;
+    say "Writing: $file";
+    close $fh;
 }
 
 my $prefix = 'xcb_';
-my %consts;
+my %const;
 
 # In contrary to %xcbtype, which only holds basic data types like 'int', 'char'
 # and so on, the %exacttype hash holds the real type name, like INT16 or CARD32
@@ -621,14 +624,14 @@ sub do_enums {
     if ($tag eq 'enum') {
         on item => sub {
             my $tname = $name . "_" . uc(xcb_name($_->{name}, 1));
-            $consts{$tname} = "newSViv(XCB_$tname)";
+            $const{$tname} = "newSViv(XCB_$tname)";
         };
         walk;
 
     }
 #    elsif ($tag =~ /^(?:event|eventcopy|error|errorcopy)$/) {
 #        my $number = $_->{number};
-#        $consts{$name} = "newSViv($number)";
+#        $const{$name} = "newSViv($number)";
 #    }
 
 }
@@ -660,14 +663,14 @@ sub generate {
     print OUTTM "X11_XCB_ICCCM_SizeHints * T_PTROBJ\n";
 
     # Our own additions: EWMH constants
-    $consts{_NET_WM_STATE_ADD}    = 'newSViv(1)';
-    $consts{_NET_WM_STATE_REMOVE} = 'newSViv(0)';
-    $consts{_NET_WM_STATE_TOGGLE} = 'newSViv(2)';
+    $const{_NET_WM_STATE_ADD}    = 'newSViv(1)';
+    $const{_NET_WM_STATE_REMOVE} = 'newSViv(0)';
+    $const{_NET_WM_STATE_TOGGLE} = 'newSViv(2)';
 
     # ICCCM constants from xcb-util
     for my $const (qw(XCB_ICCCM_WM_STATE_WITHDRAWN XCB_ICCCM_WM_STATE_NORMAL XCB_ICCCM_WM_STATE_ICONIC)) {
         my ($name) = ($const =~ /XCB_(.*)/);
-        $consts{$name} = "newSViv($const)";
+        $const{$name} = "newSViv($const)";
     }
 
     for my $path (@files) {
@@ -702,16 +705,17 @@ sub generate {
     close OUTTM;
     close OUTTD;
 
-    open my $fh_c, '>', 'XCB.inc';
-    print $fh_c "static void boot_constants(HV *stash, AV *tags_all) {\n";
-    printf $fh_c qq/    av_extend(tags_all, %d);\n/, scalar keys %consts;
-    for my $name (sort keys %consts) {
-        printf $fh_c qq/    newCONSTSUB(stash, "%s", %s);\n/,          $name, $consts{$name};
-        printf $fh_c qq/    av_push(tags_all, newSVpvn("%s", %d));\n/, $name, length $name;
-    }
-    print $fh_c "}\n";
-    close $fh_c;
+    my @const = sort keys %const;
 
+    spit 'XCB.inc', << "__",
+static void boot_constants(HV *stash, AV *tags_all) {
+    av_extend(tags_all, ${\ scalar @const });
+__
+        (map { << "__" } @const),
+    newCONSTSUB(stash, "$_", $const{$_});
+    av_push(tags_all, newSVpvn("$_", ${\ length $_ }));
+__
+        "}\n";
 }
 
 () = $0 eq __PACKAGE__ . '.pm' and generate()
