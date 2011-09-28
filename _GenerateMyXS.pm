@@ -38,6 +38,7 @@ my %const;
 # &generate in turn writes and empties them.
 my (@struct, @request);
 
+# XXX currently unused:
 # In contrary to %xcbtype, which only holds basic data types like 'int', 'char'
 # and so on, the %exacttype hash holds the real type name, like INT16 or CARD32
 # for any type which has been specified in the XML definition. For example,
@@ -47,13 +48,13 @@ my %exacttype = ();
 
 my %xcbtype = (
     BOOL   => 'int',
-    BYTE   => 'int',
-    CARD8  => 'int',
-    CARD16 => 'int',
-    CARD32 => 'int',
-    INT8   => 'int',
-    INT16  => 'int',
-    INT32  => 'int',
+    BYTE   => 'uint8_t',
+    CARD8  => 'uint8_t',
+    CARD16 => 'uint16_t',
+    CARD32 => 'uint32_t',
+    INT8   => 'uint8_t',
+    INT16  => 'uint16_t',
+    INT32  => 'uint32_t',
 
     char   => 'char',
     void   => 'void',     # Hack, to partly support ChangeProperty, until we can reverse 'op'.
@@ -234,23 +235,16 @@ sub do_requests {
 
         my $type = $xcbtype{$x_type} || perl_name $x_type;
 
-        $type = 'intArray' if $type eq 'int';
+        if ($type =~ /^uint(?:8|16|32)_t$/) {
+            $xcb_cast{$param} = " (const $type*)";
+            $type = 'intArray'
+        }
 
         # We use char* instead of void* to be able to use pack() in the perl part
         $type = 'char' if $type eq 'void';
 
         $type{$param} = "$type *";
         $type{$param . '_len'} = 'int' if $push_len;
-
-        my $x_deftype = $exacttype{$x_type} || $x_type;
-        my $t = '';
-        if (my ($type_name, $int_len) = $x_deftype =~ /^(INT|CARD)(8|16|32)$/) {
-            $t = " (const uint" . $int_len . "_t*)";
-        }
-        if ($x_type eq 'BYTE') {
-            $t = " (const uint8_t*)";
-        }
-        $xcb_cast{$param} = $t;
 
         push @cleanup, $param unless $type =~ /^(?:char|void)$/;
     };
@@ -329,7 +323,7 @@ sub do_replies($\%\%) {
         for my $var (@{ $rep->[0]->{field} }) {
             my $type = xcb_type($var->{type});
             my $name = cname($var->{name});
-            if ($type eq 'int') {
+            if ($type =~ /^(?:uint(?:8|16|32)_t|int)$/) {
                 print OUT "    hv_store(hash, \"$name\", strlen(\"$name\"), newSViv(reply->$name), 0);\n";
             } else {
                 print OUT "    /* TODO: type $type, name $var->{name} */\n";
@@ -369,7 +363,7 @@ sub do_replies($\%\%) {
                 my $type = xcb_type($field->{type});
                 my $name = cname($field->{name});
 
-                if ($type eq 'int') {
+                if ($type =~ /^(?:uint(?:8|16|32)_t|int)$/) {
                     print OUT "      hv_store(inner_hash, \"$name\", strlen(\"$name\"), newSViv(data->$name), 0);\n";
                 } else {
                     print OUT "      /* TODO: type $type, name $name */\n";
@@ -431,10 +425,17 @@ sub generate {
     open(OUTTM, ">typemap");
     open(OUTTD, ">typedefs.h");
 
-    print OUTTM "XCBConnection * T_PTROBJ\n";
-    print OUTTM "intArray * T_ARRAY\n";
-    print OUTTM "X11_XCB_ICCCM_WMHints * T_PTROBJ\n";
-    print OUTTM "X11_XCB_ICCCM_SizeHints * T_PTROBJ\n";
+    print OUTTM << '__';
+XCBConnection *             T_PTROBJ
+intArray *                  T_ARRAY
+X11_XCB_ICCCM_WMHints *     T_PTROBJ
+X11_XCB_ICCCM_SizeHints *   T_PTROBJ
+uint8_t                     T_U_CHAR
+uint16_t                    T_U_SHORT
+uint32_t                    T_UV
+__
+
+
 
     # Our own additions: EWMH constants
     $const{_NET_WM_STATE_ADD}    = 'newSViv(1)';
