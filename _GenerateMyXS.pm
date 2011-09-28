@@ -21,26 +21,15 @@ use XML::Simple qw(:strict);
 
 use XML::Descent;
 my $parser;
-sub on {
-    my ($tag, $code) = @_;
-    $parser->on($tag => sub { $code->(@_) for $_[1] });
-}
-sub walk { $parser->walk }
 
-# reads in a whole file
-sub slurp {
-    open my $fh, '<', shift;
-    local $/;
-    <$fh>;
-}
+# forward declarations of utility functions:
+sub on; sub walk;    # parser
+sub slurp; sub spit; # file reading/writing
+# name mangeling:
+sub decamelize($); sub xcb_name($); sub xcb_type($); sub perl_name($); sub cname($);
 
-sub spit {
-    my $file = shift;
-    open my $fh, '>', $file;
-    print $fh @_;
-    say "Writing: $file";
-    close $fh;
-}
+sub indent (&$@); # templating
+our $indent_level = 1;
 
 my $prefix = 'xcb_';
 my %const;
@@ -71,14 +60,6 @@ my %xcbtype = (
     float  => 'double',
     double => 'double',
 );
-
-our $level = 1;
-sub indent (&$@) {
-    my ($code, $join, @input) = @_;
-    my $indent = ' ' x ($level * 4);
-
-    return join $join, map { $indent . $code->() } @input;
-}
 
 sub tmpl_struct {
     my ($name, $params, $types) = @_;
@@ -136,7 +117,7 @@ sub tmpl_request {
     # XXX should be "$prefix$name", but $name has already a prefix like xinerama_
     my $xcb_name = "xcb_$name";
     my $xcb_param = do {
-        local $level = 0;
+        local $indent_level = 0;
         $xcb_cast->{'conn->conn'} = '';
         indent { $xcb_cast->{$_} . $_ } ', ', ('conn->conn', @param);
     };
@@ -161,72 +142,6 @@ $cleanup
     RETVAL
 
 __
-}
-
-sub perl_name($) {
-    my $x_name = shift;
-    # XXX hack:
-    # get potential extra ns like "xinerama"
-    (my $ns = $prefix) =~ s/^xcb_//;
-
-    return 'XCB' . ucfirst +($ns . decamelize($x_name));
-}
-
-sub xcb_name($) {
-    my $x_name = shift;
-    return $prefix . decamelize($x_name);
-}
-
-sub xcb_type($) {
-    my $type = shift;
-    # XXX shouldn't those be in %xcbtype anyway?
-    return $xcbtype{$type} || xcb_name($type) . '_t';
-}
-
-sub decamelize($) {
-    my ($camel) = @_;
-
-    my $special = [qw(
-        CHAR2B
-        INT64
-        FLOAT32
-        FLOAT64
-        BOOL32
-        STRING8
-        Family_DECnet
-        DECnet
-   )];
-
-    return lc $camel if $camel ~~ $special;
-
-    # FIXME: eliminate this special case
-    return $camel if $camel =~ /^CUT_BUFFER/;
-
-    my $name = '';
-
-    while (length($camel)) {
-        my ($char, $next) = ($camel =~ /^(.)(.*)$/);
-
-        $name .= lc($char);
-
-        if (   $camel =~ /^[[:lower:]][[:upper:]]/
-            || $camel =~ /^\d[[:alpha:]]/
-            || $camel =~ /^[[:alpha:]]\d/
-            || $camel =~ /^[[:upper:]][[:upper:]][[:lower:]]/)
-        {
-            $name .= '_';
-        }
-
-        $camel = $next;
-    }
-
-    return $name;
-}
-
-sub cname($) {
-    my $name = shift;
-    return "_$name" if $name ~~ [ qw/new delete class operator/ ];
-    return $name;
 }
 
 sub on_field {
@@ -581,6 +496,102 @@ __
     av_push(tags_all, newSVpvn("$_", ${\ length $_ }));
 __
         "}\n";
+}
+
+# utility functions
+
+sub on {
+    my ($tag, $code) = @_;
+    $parser->on($tag => sub { $code->(@_) for $_[1] });
+}
+sub walk { $parser->walk }
+
+# reads in a whole file
+sub slurp {
+    open my $fh, '<', shift;
+    local $/;
+    <$fh>;
+}
+
+sub spit {
+    my $file = shift;
+    open my $fh, '>', $file;
+    print $fh @_;
+    say "Writing: $file";
+    close $fh;
+}
+
+sub perl_name($) {
+    my $x_name = shift;
+    # XXX hack:
+    # get potential extra ns like "xinerama"
+    (my $ns = $prefix) =~ s/^xcb_//;
+
+    return 'XCB' . ucfirst +($ns . decamelize($x_name));
+}
+
+sub xcb_name($) {
+    my $x_name = shift;
+    return $prefix . decamelize($x_name);
+}
+
+sub xcb_type($) {
+    my $type = shift;
+    # XXX shouldn't those be in %xcbtype anyway?
+    return $xcbtype{$type} || xcb_name($type) . '_t';
+}
+
+sub decamelize($) {
+    my ($camel) = @_;
+
+    my $special = [qw(
+        CHAR2B
+        INT64
+        FLOAT32
+        FLOAT64
+        BOOL32
+        STRING8
+        Family_DECnet
+        DECnet
+   )];
+
+    return lc $camel if $camel ~~ $special;
+
+    # FIXME: eliminate this special case
+    return $camel if $camel =~ /^CUT_BUFFER/;
+
+    my $name = '';
+
+    while (length($camel)) {
+        my ($char, $next) = ($camel =~ /^(.)(.*)$/);
+
+        $name .= lc($char);
+
+        if (   $camel =~ /^[[:lower:]][[:upper:]]/
+            || $camel =~ /^\d[[:alpha:]]/
+            || $camel =~ /^[[:alpha:]]\d/
+            || $camel =~ /^[[:upper:]][[:upper:]][[:lower:]]/)
+        {
+            $name .= '_';
+        }
+
+        $camel = $next;
+    }
+
+    return $name;
+}
+
+sub cname($) {
+    my $name = shift;
+    return "_$name" if $name ~~ [ qw/new delete class operator/ ];
+    return $name;
+}
+
+sub indent (&$@) {
+    my ($code, $join, @input) = @_;
+    my $indent = ' ' x ($indent_level * 4);
+
+    return join $join, map { $indent . $code->() } @input;
 }
 
 () = $0 eq __PACKAGE__ . '.pm' and generate()
