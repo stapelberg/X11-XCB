@@ -11,14 +11,10 @@
 
 package _GenerateMyXS;
 
-use warnings;
-use strict;
-use v5.10;
+use strict; use warnings; use v5.10;
 use autodie;
 use Data::Dump;
-use File::Basename qw(basename);
 use List::Util qw(first);
-use Try::Tiny;
 use ExtUtils::PkgConfig;
 
 use XML::Simple qw(:strict);
@@ -49,8 +45,8 @@ sub spit {
 my $prefix = 'xcb_';
 my %const;
 
-# since we no longer do multiple passes over the xml,
-# keep the order in those arrays and print them as whole
+# The tmpl_* function push their generated code onto those arrays,
+# &generate in turn writes and empties them.
 my (@struct, @request);
 
 # In contrary to %xcbtype, which only holds basic data types like 'int', 'char'
@@ -93,7 +89,7 @@ sub tmpl_struct {
     my $param_decl = indent { "$types->{$_} $_" } "\n", @$params;
     my $set_struct = indent { 'buf->' . cname($_) . " = $_;" } "\n", @$params;
 
-    return << "__"
+    push @struct, << "__"
 MODULE = X11::XCB PACKAGE = $name
 $name *
 $constructor(self,$param)
@@ -115,7 +111,9 @@ sub tmpl_struct_getter {
     my ($pkg, $name, $type) = @_;
     my $cname = cname($name);
 
-    return << "__"
+    push @struct, << "__"
+MODULE = X11::XCB PACKAGE = ${pkg}Ptr
+
 $type
 $name(self)
     $pkg * self
@@ -143,7 +141,7 @@ sub tmpl_request {
     };
     my $cleanup = indent { "free($_);" } "\n", @$cleanups;
 
-    return << "__"
+    push @request, << "__"
 HV *
 $name($param)
     XCBConnection *conn
@@ -263,12 +261,10 @@ sub do_structs {
 
     walk;
 
-    push @struct, tmpl_struct($perlname, \@fields, \%type);
+    tmpl_struct($perlname, \@fields, \%type);
 
     if ($dogetter) {
-        push @struct, "MODULE = X11::XCB PACKAGE = $perlname" . "Ptr\n\n";
-        push @struct, tmpl_struct_getter($perlname, $_, $type{$_}) for @fields;
-
+        tmpl_struct_getter($perlname, $_, $type{$_}) for @fields;
     }
 
 }
@@ -361,7 +357,7 @@ sub do_requests {
     $cookie ||= 'xcb_void_cookie_t';
     $xcb_cast{$_} ||= '' for @param;
 
-    push @request, tmpl_request($name, $cookie, \@param, \%type, \%xcb_cast, \@cleanup);
+    tmpl_request($name, $cookie, \@param, \%type, \%xcb_cast, \@cleanup);
 
 }
 
