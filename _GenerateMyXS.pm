@@ -133,6 +133,7 @@ sub tmpl_request {
 
     my $param_decl = indent { "$types->{$_} $_" } "\n", @param;
 
+    # XXX should be "$prefix$name", but $name has already a prefix like xinerama_
     my $xcb_name = "xcb_$name";
     my $xcb_param = do {
         local $level = 0;
@@ -162,60 +163,69 @@ $cleanup
 __
 }
 
-sub xcb_name($;$) {
-    my ($name, $clean) = @_;
+sub perl_name($) {
+    my $x_name = shift;
+    # XXX hack:
+    # get potential extra ns like "xinerama"
+    (my $ns = $prefix) =~ s/^xcb_//;
 
-    my %simple = (
-        CHAR2B        => 1,
-        INT64         => 1,
-        FLOAT32       => 1,
-        FLOAT64       => 1,
-        BOOL32        => 1,
-        STRING8       => 1,
-        Family_DECnet => 1,
-        DECnet        => 1
-    );
-    my $mangled = '';
+    return 'XCB' . ucfirst +($ns . decamelize($x_name));
+}
 
-    $mangled = $prefix unless $clean;
+sub xcb_name($) {
+    my $x_name = shift;
+    return $prefix . decamelize($x_name);
+}
+
+sub xcb_type($) {
+    my $type = shift;
+    # XXX shouldn't those be in %xcbtype anyway?
+    return $xcbtype{$type} || xcb_name($type) . '_t';
+}
+
+sub decamelize($) {
+    my ($camel) = @_;
+
+    my $special = [qw(
+        CHAR2B
+        INT64
+        FLOAT32
+        FLOAT64
+        BOOL32
+        STRING8
+        Family_DECnet
+        DECnet
+   )];
+
+    return lc $camel if $camel ~~ $special;
 
     # FIXME: eliminate this special case
-    if ($name =~ /^CUT_BUFFER/) {
-        return $name;
-    }
+    return $camel if $camel =~ /^CUT_BUFFER/;
 
-    return $mangled . lc($name) if $simple{$name};
+    my $name = '';
 
-    while (length($name)) {
-        my ($char, $next) = ($name =~ /^(.)(.*)$/);
+    while (length($camel)) {
+        my ($char, $next) = ($camel =~ /^(.)(.*)$/);
 
-        $mangled .= lc($char);
+        $name .= lc($char);
 
-        if (   $name =~ /^[[:lower:]][[:upper:]]/
-            || $name =~ /^\d[[:alpha:]]/
-            || $name =~ /^[[:alpha:]]\d/
-            || $name =~ /^[[:upper:]][[:upper:]][[:lower:]]/)
+        if (   $camel =~ /^[[:lower:]][[:upper:]]/
+            || $camel =~ /^\d[[:alpha:]]/
+            || $camel =~ /^[[:alpha:]]\d/
+            || $camel =~ /^[[:upper:]][[:upper:]][[:lower:]]/)
         {
-            $mangled .= '_';
+            $name .= '_';
         }
 
-        $name = $next;
+        $camel = $next;
     }
 
-    return $mangled;
+    return $name;
 }
 
 sub cname($) {
     my $name = shift;
-
-    my %bad = (
-        new      => 1,
-        delete   => 1,
-        class    => 1,
-        operator => 1
-    );
-
-    return "_$name" if $bad{$name};
+    return "_$name" if $name ~~ [ qw/new delete class operator/ ];
     return $name;
 }
 
@@ -226,20 +236,19 @@ sub on_field {
         my $name = $_->{name};
         push @$fields, $_->{name};
 
-        my $type = get_vartype($_->{type});
+        my $type = xcb_type($_->{type});
+        # XXX why not XCB\u$1?
         $type =~ s/^xcb_/XCB/;
         $types->{$name} = $type;
     }
 }
 
 sub do_structs {
-    my $name     = $_->{name};
-    my $xcbname  = xcb_name($name) . '_t';
-    my $perlname = $xcbname;
+    my $x_name = $_->{name};
+    my $xcb_type = xcb_type $x_name;
+    my $perlname = perl_name $x_name;
 
-    $perlname =~ s/^xcb_([a-z])/XCB\u$1/g;
-    $perlname =~ s/_t$//g;
-    print OUTTD " typedef $xcbname $perlname;\n";
+    print OUTTD " typedef $xcb_type $perlname;\n";
     print OUTTM "$perlname * T_PTROBJ\n";
 
     my (@fields, %type);
@@ -281,16 +290,15 @@ sub do_typedefs {
     }
 }
 
-sub get_vartype($) {
-    my $type = shift;
-
-    return $xcbtype{$type} if (defined($xcbtype{$type}));
-    return xcb_name($type) . "_t";
-}
-
 sub do_requests {
-    my $xcb_name  = xcb_name($_->{name});
-    (my $name = $xcb_name) =~ s/^xcb_//g;
+    my $x_name = $_->{name};
+    my $xcb_name  = xcb_name $x_name;
+
+    # XXX hack, to get eg. a xinerama_ prefix
+    (my $ns = $prefix) =~ s/^xcb_//;
+
+    my $name = $ns . decamelize $x_name;
+
 
     my (@param, %type, %xcb_cast, @cleanup);
 
@@ -309,8 +317,7 @@ sub do_requests {
         push @param, $param . '_len' if $push_len;
         push @param, $param;
 
-        my $type = get_vartype($x_type);
-        $type =~ s/^xcb_([a-z].+)_t$/XCB\u$1/g;
+        my $type = $xcbtype{$x_type} || perl_name $x_type;
 
         $type = 'intArray' if $type eq 'int';
 
@@ -344,7 +351,7 @@ sub do_requests {
         push @param, $list;
         push @param, '...';
 
-        $type{$mask} = get_vartype($type);
+        $type{$mask} = xcb_type $type;
         $type{$list} = 'intArray *';
 
         push @cleanup, $list;
@@ -405,7 +412,7 @@ sub do_replies($\%\%) {
         print OUT "    hv_store(hash, \"sequence\", strlen(\"sequence\"), newSViv(reply->sequence), 0);\n";
         print OUT "    hv_store(hash, \"length\", strlen(\"length\"), newSViv(reply->length), 0);\n";
         for my $var (@{ $rep->[0]->{field} }) {
-            my $type = get_vartype($var->{type});
+            my $type = xcb_type($var->{type});
             my $name = cname($var->{name});
             if ($type eq 'int') {
                 print OUT "    hv_store(hash, \"$name\", strlen(\"$name\"), newSViv(reply->$name), 0);\n";
@@ -444,7 +451,7 @@ sub do_replies($\%\%) {
             print OUT "      inner_hash = newHV();\n";
 
             for my $field (@{ $struct->{field} }) {
-                my $type = get_vartype($field->{type});
+                my $type = xcb_type($field->{type});
                 my $name = cname($field->{name});
 
                 if ($type eq 'int') {
@@ -472,11 +479,11 @@ sub do_replies($\%\%) {
 sub do_enums {
     my ($tag, $attr) = @_;
 
-    my $name = uc(xcb_name($attr->{name}, 1));
+    my $name = uc decamelize $attr->{name};
 
     if ($tag eq 'enum') {
         on item => sub {
-            my $tname = $name . "_" . uc(xcb_name($_->{name}, 1));
+            my $tname = $name . "_" . uc decamelize $_->{name};
             $const{$tname} = "newSViv(XCB_$tname)";
         };
         walk;
