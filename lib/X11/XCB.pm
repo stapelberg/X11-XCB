@@ -9,14 +9,12 @@ our $VERSION = '0.02';
 use Exporter 'import';
 
 our @EXPORT;
-our %EXPORT_TAGS = (all => []); # empty array ref for XS
+our %EXPORT_TAGS = (all => []); # will be populated by XS
+*EXPORT_OK = $EXPORT_TAGS{all};
 
 require XSLoader;
 XSLoader::load('X11::XCB', $VERSION);
 
-# since XS adds its constants to $EXPORT_TAGS{all}
-# this *must* come after XSLoader::load:
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{all} } );
 
 1;
 __END__
