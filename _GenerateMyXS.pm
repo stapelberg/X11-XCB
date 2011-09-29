@@ -119,8 +119,8 @@ sub tmpl_request {
     my $xcb_name = "xcb_$name";
     my $xcb_param = do {
         local $indent_level = 0;
-        $xcb_cast->{'conn->conn'} = '';
-        indent { $xcb_cast->{$_} . $_ } ', ', ('conn->conn', @param);
+        $xcb_cast->{conn} = '';
+        indent { $xcb_cast->{$_} . $_ } ', ', ('conn', @param);
     };
     my $cleanup = indent { "free($_);" } "\n", @$cleanups;
 
@@ -222,7 +222,6 @@ sub do_requests {
 
     my $name = $ns . decamelize $x_name;
 
-
     my (@param, %type, %xcb_cast, @cleanup);
 
     on_field(\@param, \%type);
@@ -273,11 +272,10 @@ sub do_requests {
         push @cleanup, $list;
     };
 
-    my $cookie;
+    my $cookie = 'xcb_void_cookie_t';
     on reply => sub { $cookie = $xcb_name . '_cookie_t'; 'do_reply(@_)' };
     walk;
 
-    $cookie ||= 'xcb_void_cookie_t';
     $xcb_cast{$_} ||= '' for @param;
 
     tmpl_request($name, $cookie, \@param, \%type, \%xcb_cast, \@cleanup);
@@ -319,7 +317,7 @@ sub do_replies($\%\%) {
         print OUT "    $reply *reply;\n";
         print OUT "  CODE:\n";
         print OUT "    cookie.sequence = sequence;\n";
-        print OUT "    reply = $name(conn->conn, cookie, NULL);\n";
+        print OUT "    reply = $name(conn, cookie, NULL);\n";
         # XXX use connection_has_error
         print OUT qq/    if (!reply) croak("Could not get reply for: $name"); /;
         print OUT "    hash = newHV();\n";
@@ -433,7 +431,7 @@ sub generate {
     open(OUTTD, ">typedefs.h");
 
     print OUTTM << '__';
-XCBConnection *             T_PTROBJ
+XCBConnection *             T_PTROBJ_MG
 intArray *                  T_ARRAY
 X11_XCB_ICCCM_WMHints *     T_PTROBJ
 X11_XCB_ICCCM_SizeHints *   T_PTROBJ
@@ -480,7 +478,7 @@ __
 
         do_events($xcb);
 
-        print OUT "MODULE = X11::XCB PACKAGE = XCBConnectionPtr\n";
+        print OUT "MODULE = X11::XCB PACKAGE = X11::XCB\n";
         print OUT @request;
         undef @request;
 
@@ -602,7 +600,7 @@ sub indent (&$@) {
     return join $join, map { $indent . $code->() } @input;
 }
 
-() = $0 eq __PACKAGE__ . '.pm' and generate()
+() = $0 =~ (__PACKAGE__ . '.pm') ? generate() : 1;
 
 # Copyright (C) 2009 Michael Stapelberg <michael at stapelberg dot de>
 # Copyright (C) 2007 Hummingbird Ltd. All Rights Reserved.

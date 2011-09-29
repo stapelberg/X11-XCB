@@ -18,8 +18,13 @@ Please make sure you installed the development versions of
 libxcb, libxcb-util, libxcb-icccm and libxcb-xinerama.
 __
 cc_libs @xcb_libs;
+# cc_warnings; -Wunused-value
 
 use_ppport;
+
+configure_requires 'XS::Object::Magic';
+configure_requires 'ExtUtils::Depends';
+require ExtUtils::Depends;
 
 test_requires 'Test::More';
 test_requires 'Test::Deep';
@@ -40,4 +45,8 @@ if ($Module::Install::AUTHOR) {
     _GenerateMyXS::generate();
 }
 
-WriteAll;
+WriteMakefile(
+    ExtUtils::Depends
+        ->new('X11::XCB', 'XS::Object::Magic')
+        ->get_makefile_vars
+);

@@ -31,7 +31,7 @@ set_wm_hints(conn, window, hints)
     int window
     X11_XCB_ICCCM_WMHints * hints
   CODE:
-    xcb_icccm_set_wm_hints(conn->conn, window, hints);
+    xcb_icccm_set_wm_hints(conn, window, hints);
 
 void
 set_wm_size_hints(conn, window, property, hints)
@@ -40,7 +40,7 @@ set_wm_size_hints(conn, window, property, hints)
     int property
     X11_XCB_ICCCM_SizeHints * hints
   CODE:
-    xcb_icccm_set_wm_size_hints(conn->conn, window, property, hints);
+    xcb_icccm_set_wm_size_hints(conn, window, property, hints);
 
 
 

@@ -504,7 +504,7 @@ sub _update_hints {
         }
     }
 
-    X11::XCB::ICCCM::set_wm_hints($self->_conn->conn, $self->id, $hints);
+    X11::XCB::ICCCM::set_wm_hints($self->_conn, $self->id, $hints);
     $self->_conn->flush;
 }
 

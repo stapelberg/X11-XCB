@@ -20,7 +20,7 @@ sub _update_aspect {
     $hints->set_aspect($aspect->min_num, $aspect->min_den,
                        $aspect->max_num, $aspect->max_den);
 
-    X11::XCB::ICCCM::set_wm_size_hints($self->_conn->conn, $self->window, ATOM_WM_NORMAL_HINTS, $hints);
+    X11::XCB::ICCCM::set_wm_size_hints($self->_conn, $self->window, ATOM_WM_NORMAL_HINTS, $hints);
 }
 
 =head1 NAME

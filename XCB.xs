@@ -4,14 +4,14 @@
 #include <xcb/xcb.h>
 #include <xcb/xinerama.h>
 #include <xcb/xcb_icccm.h>
-#include "wrapper.h"
 
 #include "ppport.h"
 
 #include "typedefs.h"
+#include "xs_object_magic.h"
 
+typedef xcb_connection_t XCBConnection;
 typedef xcb_icccm_wm_hints_t X11_XCB_ICCCM_WMHints;
-typedef struct my_xcb_conn XCBConnection;
 typedef xcb_size_hints_t X11_XCB_ICCCM_SizeHints;
 
 #include "XCB.inc"
@@ -102,29 +102,35 @@ BOOT:
     boot_constants(stash, tags_all);
 }
 
-XCBConnection *
-new(class,displayname,screenp)
-    char *class
-    const char *displayname
-    int screenp = NO_INIT
+void
+_connect_and_attach_struct(self)
+    SV *self
   PREINIT:
     XCBConnection *xcbconnbuf;
   CODE:
-    New(0, xcbconnbuf, 1, XCBConnection);
-    xcbconnbuf->conn = xcb_connect(displayname, &screenp);
-    RETVAL = xcbconnbuf;
-  OUTPUT:
-    screenp
-    RETVAL
+    assert(sv_derivered_from(self, __PACKAGE__));
+    SV **disp = hv_fetch((HV*)SvRV(self), "display", strlen("display"), 0);
+    if(!disp)
+        croak("Attribute 'display' is required");
 
+    const char *displayname = SvPV_nolen(*disp);
+    int screenp;
 
-MODULE = X11::XCB PACKAGE = XCBConnectionPtr
+    xcbconnbuf = xcb_connect(displayname, &screenp);
+    /* XXX: error checking */
+    xs_object_magic_attach_struct(aTHX_ SvRV(self), xcbconnbuf);
+
+void
+DESTROY(self)
+    XCBConnection *self
+  CODE:
+    Safefree(self);
 
 int
 has_error(self)
     XCBConnection * self
   CODE:
-    RETVAL = xcb_connection_has_error(self->conn);
+    RETVAL = xcb_connection_has_error(self);
   OUTPUT:
     RETVAL
 
@@ -133,7 +139,7 @@ int
 get_file_descriptor(self)
     XCBConnection * self
   CODE:
-    RETVAL = xcb_get_file_descriptor(self->conn);
+    RETVAL = xcb_get_file_descriptor(self);
   OUTPUT:
     RETVAL
 
@@ -146,7 +152,7 @@ wait_for_event(self)
     SV * result;
     xcb_generic_event_t * event;
   CODE:
-    event = xcb_wait_for_event(self->conn);
+    event = xcb_wait_for_event(self);
     if (event == NULL) {
         RETVAL = &PL_sv_undef;
     } else {
@@ -164,7 +170,7 @@ poll_for_event(self)
     SV * result;
     xcb_generic_event_t * event;
   CODE:
-    event = xcb_poll_for_event(self->conn);
+    event = xcb_poll_for_event(self);
     if (event == NULL) {
         RETVAL = &PL_sv_undef;
     } else {
@@ -178,7 +184,7 @@ int
 get_root_window(conn)
     XCBConnection *conn
   CODE:
-    RETVAL = xcb_setup_roots_iterator(xcb_get_setup(conn->conn)).data->root;
+    RETVAL = xcb_setup_roots_iterator(xcb_get_setup(conn)).data->root;
   OUTPUT:
     RETVAL
 
@@ -187,7 +193,7 @@ int
 generate_id(conn)
     XCBConnection *conn
   CODE:
-    RETVAL = xcb_generate_id(conn->conn);
+    RETVAL = xcb_generate_id(conn);
   OUTPUT:
     RETVAL
 
@@ -195,7 +201,7 @@ void
 flush(conn)
     XCBConnection *conn
   CODE:
-    xcb_flush(conn->conn);
+    xcb_flush(conn);
 
 
 INCLUDE: XCB_util.inc

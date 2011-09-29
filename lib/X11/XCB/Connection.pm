@@ -7,19 +7,16 @@ use X11::XCB::Screen;
 use X11::XCB::Window;
 use List::Util qw(sum);
 
-has 'display' => (is => 'rw', isa => 'Str', default => '');
-has 'conn' => (is => 'rw', isa => 'XCBConnectionPtr', handles => qr/.*/);
+extends qw/Mouse::Object X11::XCB/;
 
 sub BUILD {
-    my $self = shift;
-
-    # TODO: do we need this one?
-    my $screens;
-    my $conn = X11::XCB->new($self->display, $screens);
-    die "Could not connect to X11" if ($conn->has_error);
-
-    $self->conn($conn);
+    shift->_connect_and_attach_struct;
 }
+
+# free struct
+*DESTROY = \&X11::XCB::DESTROY;
+
+has 'display' => (is => 'rw', isa => 'Str', default => '');
 
 =head1 NAME
 
@@ -35,7 +32,7 @@ Returns a new C<X11::XCB::Atom> assigned to this connection.
 sub atom {
     my $self = shift;
 
-    return X11::XCB::Atom->new(_conn => $self->conn, @_);
+    return X11::XCB::Atom->new(_conn => $self, @_);
 }
 
 =head2 color
@@ -46,7 +43,7 @@ Returns a new C<X11::XCB::Color> assigned to this connection.
 sub color {
     my $self = shift;
 
-    return X11::XCB::Color->new(_conn => $self->conn, @_);
+    return X11::XCB::Color->new(_conn => $self, @_);
 }
 
 
@@ -66,7 +63,7 @@ sub root {
         _conn => $self,
         _mapped => 1, # root window is always mapped
         parent => 0,
-        id => $self->conn->get_root_window(),
+        id => $self->get_root_window(),
         rect => X11::XCB::Rect->new(x => 0, y => 0, width => $width, height => $height),
         class => WINDOW_CLASS_INPUT_OUTPUT, # FIXME: is this correct for the root win?
     );
@@ -94,14 +91,13 @@ Returns an arrayref of L<X11::XCB::Screen>s.
 sub screens {
     my $self = shift;
 
-    my $conn = $self->conn;
-    my $cookie = $conn->xinerama_query_screens;
-    my $screens = $conn->xinerama_query_screens_reply($cookie->{sequence});
+    my $cookie = $self->xinerama_query_screens;
+    my $screens = $self->xinerama_query_screens_reply($cookie->{sequence});
 
     # If Xinerama is not available, fall back to the X root window dimensions
     if (@{$screens->{screen_info}} == 0) {
-        my $cookie = $conn->get_geometry($self->get_root_window());
-        my $geom = $conn->get_geometry_reply($cookie->{sequence});
+        my $cookie = $self->get_geometry($self->get_root_window());
+        my $geom = $self->get_geometry_reply($cookie->{sequence});
         return [ X11::XCB::Screen->new(rect => X11::XCB::Rect->new($geom)) ];
     }
 
