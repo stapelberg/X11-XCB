@@ -150,7 +150,7 @@ sub on_field {
 
     on field => sub {
         my $name = $_->{name};
-        push @$fields, $_->{name};
+        push @$fields, $name;
 
         my $type = xcb_type($_->{type});
         # XXX why not XCB\u$1?
@@ -206,6 +206,13 @@ sub do_typedefs {
     }
 }
 
+# items is already in use by XS, see perlapi
+# <Variables created by "xsubpp" and "xsubpp" internal functions> for more
+# XXX this is currently only used in do_request/on list
+sub param_sanitize {
+    $_[0] eq 'items' ? 'items_' : $_[0]
+}
+
 sub do_requests {
     my $x_name = $_->{name};
     my $xcb_name  = xcb_name $x_name;
@@ -223,7 +230,7 @@ sub do_requests {
     # array length
     # TODO : rid _len from parameters, use XS to get the length of strings, etc
     on list => sub {
-        my $param = $_->{name};
+        my $param = param_sanitize($_->{name});
         my $x_type = $_->{type};
 
         my $push_len = 1;
