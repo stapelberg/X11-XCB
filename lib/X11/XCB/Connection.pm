@@ -1,11 +1,6 @@
 package X11::XCB::Connection;
-# passes all methods to the underlying XCBConnection.
 
 use Mouse;
-use X11::XCB qw(:all);
-use X11::XCB::Screen;
-use X11::XCB::Window;
-use List::Util qw(sum);
 
 extends qw/Mouse::Object X11::XCB/;
 
@@ -31,6 +26,7 @@ Returns a new C<X11::XCB::Atom> assigned to this connection.
 =cut
 sub atom {
     my $self = shift;
+    require X11::XCB::Atom;
 
     return X11::XCB::Atom->new(_conn => $self, @_);
 }
@@ -42,6 +38,7 @@ Returns a new C<X11::XCB::Color> assigned to this connection.
 =cut
 sub color {
     my $self = shift;
+    require X11::XCB::Color;
 
     return X11::XCB::Color->new(_conn => $self, @_);
 }
@@ -54,10 +51,12 @@ Returns a new C<X11::XCB::Window> representing the X11 root window.
 =cut
 sub root {
     my $self = shift;
+    require X11::XCB::Window;
+    require List::Util;
 
     my $screens = $self->screens;
-    my $width = sum map { $_->rect->width } @{$screens};
-    my $height = sum map { $_->rect->height } @{$screens};
+    my $width = List::Util::sum map { $_->rect->width } @{$screens};
+    my $height = List::Util::sum map { $_->rect->height } @{$screens};
 
     return X11::XCB::Window->new(
         _conn => $self,
@@ -65,7 +64,9 @@ sub root {
         parent => 0,
         id => $self->get_root_window(),
         rect => X11::XCB::Rect->new(x => 0, y => 0, width => $width, height => $height),
-        class => WINDOW_CLASS_INPUT_OUTPUT, # FIXME: is this correct for the root win?
+
+        # FIXME: is this correct for the root win?
+        class => X11::XCB::WINDOW_CLASS_INPUT_OUTPUT(),
     );
 }
 
@@ -90,6 +91,7 @@ Returns an arrayref of L<X11::XCB::Screen>s.
 =cut
 sub screens {
     my $self = shift;
+    require X11::XCB::Screen;
 
     my $cookie = $self->xinerama_query_screens;
     my $screens = $self->xinerama_query_screens_reply($cookie->{sequence});
