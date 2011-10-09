@@ -86,10 +86,12 @@ The i3 window manager includes testcases which use X11::XCB.
 =head1 AUTHOR
 
 Michael Stapelberg, E<lt>michael+xcb@stapelberg.deE<gt>
+Maik Fischer, E<lt>maikf+xcb@qu.cxE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2009 by Michael Stapelberg
+Copyright (C) 2009-2011 Michael Stapelberg
+Copyright (C) 2011 Maik Fischer
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.10.0 or,
