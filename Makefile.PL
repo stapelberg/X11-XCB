@@ -38,6 +38,8 @@ use inc::Module::Install;
 name 'X11-XCB';
 all_from 'lib/X11/XCB.pm';
 
+repository 'git://code.stapelberg.de/X11-XCB';
+
 requires 'Mouse';
 requires 'MouseX::NativeTraits';
 requires 'Try::Tiny';
