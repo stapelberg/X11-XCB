@@ -11,3 +11,4 @@
 ^t/pod-coverage.t$
 ^X11-XCB-*
 ^\..+\.sw[po]$
+^bundled-libs/.+.tar.bz2$
