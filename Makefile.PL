@@ -51,9 +51,6 @@ configure_requires $_ for grep !/Module::Install/, @configure_req;
 
 author_requires $_ for @author_req;
 
-# For the bundled libxcb.
-requires_external_bin 'python2.6';
-
 use_ppport;
 
 # -Wunused-value generates too much output to use it unconditionally
