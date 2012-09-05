@@ -1,4 +1,10 @@
 use strict; use warnings;
+
+# Automated testing of this module makes little sense: It requires libXau,
+# libXdmcp, python2.6 and xsltproc which are typically not installed on CPAN
+# smokers.
+exit 0 if $ENV{AUTOMATED_TESTING};
+
 my (@configure_req, @author_req);
 BEGIN{
   @configure_req = qw/
