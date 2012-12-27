@@ -215,6 +215,13 @@ get_file_descriptor(self)
   OUTPUT:
     RETVAL
 
+void *
+get_xcb_conn(self)
+    SV * self
+  CODE:
+    RETVAL = xs_object_magic_get_struct_rv(aTHX_ self);
+  OUTPUT:
+    RETVAL
 
 SV *
 wait_for_event(self)
