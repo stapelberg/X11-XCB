@@ -31,6 +31,8 @@ has 'parent' => (is => 'ro', isa => 'Int', required => 1);
 has '_rect' => (is => 'ro', isa => 'X11::XCB::Rect', required => 1, init_arg => 'rect', coerce => 1);
 has 'window_type' => (is => 'rw', isa => 'X11::XCB::Atom', coerce => 1, trigger => \&_update_type);
 has 'transient_for' => (is => 'rw', isa => 'X11::XCB::Window', trigger => \&_update_transient_for);
+has 'wm_class' => (is => 'rw', isa => 'Str', trigger => \&_update_wm_class);
+has 'instance' => (is => 'rw', isa => 'Str', trigger => \&_update_wm_class);
 has 'client_leader' => (is => 'rw', isa => 'X11::XCB::Window', trigger => \&_update_client_leader);
 has 'override_redirect' => (is => 'ro', isa => 'Int', default => 0);
 has 'background_color' => (is => 'ro', isa => 'X11::XCB::Color', coerce => 1, predicate => '_has_background_color');
@@ -196,6 +198,7 @@ sub _create {
     $self->_update_name if defined($self->name);
     $self->_update_transient_for if defined($self->transient_for);
     $self->_update_client_leader if defined($self->client_leader);
+    $self->_update_wm_class if defined($self->wm_class) || defined($self->instance);
 
     if (!$self->no_protocols) {
         my $atomname = $x->atom(name => 'WM_PROTOCOLS');
@@ -425,6 +428,29 @@ sub _update_transient_for {
         pack('L', $self->transient_for->id)
     );
     $self->_conn->flush;
+}
+
+sub _update_wm_class {
+    my $self = shift;
+    return unless $self->_created;
+
+    my $conn = $self->_conn;
+    my $atomname = $conn->atom(name => 'WM_CLASS');
+    my $atomtype = $conn->atom(name => 'STRING');
+
+    # Fall back to the wm_class if instance is not defined.
+    my $instance = $self->instance // $self->wm_class;
+
+    $conn->change_property(
+        PROP_MODE_REPLACE,
+        $self->id,
+        $atomname->id,
+        $atomtype->id,
+        8,
+        length($self->wm_class) + length($instance) + 2,
+        "$instance\x00" . $self->wm_class . "\x00",
+    );
+
 }
 
 sub _update_client_leader {
