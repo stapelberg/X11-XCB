@@ -472,7 +472,7 @@ sub add_hint {
     my ($self, $hint) = @_;
 
     # check if $self->_hints contains the hint already, then do nothing
-    return if ($self->_hints ~~ $hint);
+    return if (scalar grep { $_ eq $hint } @{$self->_hints}) > 0;
 
     # else add the hint to array
     push @{$self->_hints}, $hint;
