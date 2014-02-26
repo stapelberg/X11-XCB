@@ -224,6 +224,9 @@ sub do_requests {
 
     my (@param, %type, %xcb_cast, @cleanup);
 
+    # Skip documentation blocks.
+    on doc => sub {};
+
     on_field(\@param, \%type);
 
     # array length
