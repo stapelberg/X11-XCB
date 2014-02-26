@@ -1,8 +1,8 @@
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
-#include <xcb.h>
-#include <xinerama.h>
+#include <xcb/xcb.h>
+#include <xcb/xinerama.h>
 
 #include "ppport.h"
 
