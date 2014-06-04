@@ -91,7 +91,7 @@ WriteMakefile(
 
 postamble <<'END_OF_MAKEFILE';
 XCB_xs.inc:
-	perl -M_GenerateMyXS -E '_GenerateMyXS::generate()'
+	$(PERL) -M_GenerateMyXS -E '_GenerateMyXS::generate()'
 END_OF_MAKEFILE
 
 # vim:sw=2:sts=2:et
