@@ -10,7 +10,7 @@ new(self)
   PREINIT:
     X11_XCB_ICCCM_WMHints *buf;
   CODE:
-    New(0, buf, 1, X11_XCB_ICCCM_WMHints);
+    Newxz(buf, 1, X11_XCB_ICCCM_WMHints);
     RETVAL = buf;
   OUTPUT:
     RETVAL
