@@ -24,6 +24,15 @@ set_urgency(self)
     #define XCB_ICCCM_WM_HINT_X_URGENCY (1L << 8)
     self->flags |= XCB_ICCCM_WM_HINT_X_URGENCY;
 
+void
+set_input(self, value)
+    X11_XCB_ICCCM_WMHints * self
+    uint32_t value
+  CODE:
+    #define XCB_ICCCM_WM_HINT_INPUT (1L << 0)
+    self->flags |= XCB_ICCCM_WM_HINT_INPUT;
+    self->input = value;
+
 MODULE = X11::XCB PACKAGE = X11::XCB::ICCCM
 
 void

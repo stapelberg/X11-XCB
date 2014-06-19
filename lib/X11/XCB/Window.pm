@@ -528,6 +528,9 @@ sub _update_hints {
         if ($hint eq 'urgency') {
             $hints->set_urgency();
         }
+        if ($hint eq 'input') {
+            $hints->set_input(1);
+        }
     }
 
     X11::XCB::ICCCM::set_wm_hints($self->_conn, $self->id, $hints);
