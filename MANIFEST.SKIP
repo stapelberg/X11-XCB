@@ -12,3 +12,5 @@
 ^X11-XCB-*
 ^\..+\.sw[po]$
 ^bundled-libs/.+.tar.bz2$
+^MYMETA.yml$
+^MYMETA.json$
