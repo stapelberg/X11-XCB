@@ -4,8 +4,12 @@
 ^\.gitignore$
 \.o$
 \.bak$
+^XCB_xs.inc$
+^XCB.inc$
 ^XCB.c$
 ^XCB.bs$
+^typemap$
+^typedefs.h$
 ^Makefile$
 ^Makefile.old$
 ^t/pod-coverage.t$
