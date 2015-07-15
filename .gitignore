@@ -9,3 +9,11 @@ XCB.c
 XCB.bs
 typemap
 typedefs.h
+ppport.h
+XCB.inc
+XCB.o
+XCB_xs.inc
+blib/
+inc/
+pm_to_blib
+*.swp
