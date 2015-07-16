@@ -78,20 +78,12 @@ WriteMakefile(
     ->get_makefile_vars
 );
 
-{
-  package MY;
-  sub top_targets {
-    my $self = shift;
-
-    my $old = $self->MM::top_targets;
-
-    return "all::  XCB_xs.inc\n$old";
-  }
-}
-
 postamble <<'END_OF_MAKEFILE';
 XCB_xs.inc:
 	$(PERL) -M_GenerateMyXS -E '_GenerateMyXS::generate()'
+
+XCB.c: XCB_xs.inc
+
 END_OF_MAKEFILE
 
 # vim:sw=2:sts=2:et
