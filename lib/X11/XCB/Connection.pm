@@ -84,6 +84,13 @@ sub input_focus {
     return $reply->{focus};
 }
 
+sub _screens_from_root {
+    my $self = shift;
+    my $cookie = $self->get_geometry($self->get_root_window());
+    my $geom = $self->get_geometry_reply($cookie->{sequence});
+    return [ X11::XCB::Screen->new(rect => X11::XCB::Rect->new($geom)) ];
+}
+
 =head2 screens
 
 Returns an arrayref of L<X11::XCB::Screen>s.
@@ -93,14 +100,16 @@ sub screens {
     my $self = shift;
     require X11::XCB::Screen;
 
+    if (!$self->extension_present('xinerama')) {
+        return $self->_screens_from_root();
+    }
+
     my $cookie = $self->xinerama_query_screens;
     my $screens = $self->xinerama_query_screens_reply($cookie->{sequence});
 
     # If Xinerama is not available, fall back to the X root window dimensions
     if (@{$screens->{screen_info}} == 0) {
-        my $cookie = $self->get_geometry($self->get_root_window());
-        my $geom = $self->get_geometry_reply($cookie->{sequence});
-        return [ X11::XCB::Screen->new(rect => X11::XCB::Rect->new($geom)) ];
+        return $self->_screens_from_root();
     }
 
     my @result;

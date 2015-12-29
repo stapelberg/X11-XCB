@@ -282,6 +282,24 @@ flush(conn)
   CODE:
     xcb_flush(conn);
 
+int
+extension_present(conn, extension_name)
+    XCBConnection *conn
+    char *extension_name
+  CODE:
+    xcb_extension_t *ext = NULL;
+    if (strcmp(extension_name, "xinerama") == 0) {
+      ext = &xcb_xinerama_id;
+    }
+    if (ext != NULL) {
+      const xcb_query_extension_reply_t *reply;
+      reply = xcb_get_extension_data(conn, ext);
+      RETVAL = reply->present;
+    } else {
+      RETVAL = 0;
+    }
+  OUTPUT:
+    RETVAL
 
 INCLUDE: XCB_util.inc
 
