@@ -72,6 +72,8 @@ sub _build_hints {
     return X11::XCB::Sizehints->new(_conn => $self->_conn, window => $self->id);
 }
 
+=encoding utf-8
+
 =head1 NAME
 
 X11::XCB::Window - represents an X11 window
