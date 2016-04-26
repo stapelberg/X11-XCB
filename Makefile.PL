@@ -12,6 +12,7 @@ BEGIN{
     Module::Install::AuthorRequires
     Module::Install::XSUtil
     ExtUtils::Depends
+    ExtUtils::PkgConfig
     XS::Object::Magic
   /;
   my %ok;
