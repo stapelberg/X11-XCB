@@ -275,6 +275,22 @@ sub do_requests {
         push @cleanup, $list;
     };
 
+    on switch => sub {
+        my ($elem, $attr, $ctx) = @_;
+        my $mask = 'value_mask';
+        my $list = $attr->{'name'};
+        push @param, $mask
+        # eg. ConfigureWindow already specifies the mask via <field />
+            unless ($param[-1] || '') eq $mask;
+
+        push @param, $list;
+        push @param, '...';
+
+        $type{$list} = 'intArray *';
+
+        push @cleanup, $list;
+    };
+
     my $cookie = 'xcb_void_cookie_t';
     on reply => sub { $cookie = $xcb_name . '_cookie_t'; 'do_reply(@_)' };
     walk;
