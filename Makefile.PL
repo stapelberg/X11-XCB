@@ -84,6 +84,11 @@ postamble <<'END_OF_MAKEFILE';
 XCB_xs.inc:
 	$(PERL) -I. -M_GenerateMyXS -E '_GenerateMyXS::generate()'
 
+XCB.inc: XCB_xs.inc
+	## Recover from the removal of $@
+	@test -f $@ || rm -f XCB_xs.inc
+	@test -f $@ || $(MAKE) $(AM_MAKEFLAGS) XCB_xs.inc
+
 XCB.c: XCB_xs.inc XCB_util.inc XCB.inc
 
 END_OF_MAKEFILE
