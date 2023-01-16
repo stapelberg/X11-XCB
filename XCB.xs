@@ -180,7 +180,7 @@ _connect_and_attach_struct(self)
   PREINIT:
     XCBConnection *xcbconnbuf;
   CODE:
-    assert(sv_derivered_from(self, __PACKAGE__));
+    assert(sv_derivered_from(self, HvNAME(PL_curstash)));
     SV **disp = hv_fetch((HV*)SvRV(self), "display", strlen("display"), 0);
     if(!disp)
         croak("Attribute 'display' is required");
