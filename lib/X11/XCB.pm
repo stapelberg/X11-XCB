@@ -43,12 +43,14 @@ X11::XCB - perl bindings for libxcb
   my $x = X11::XCB::Connection->new;
 
   my $window = $x->root->create_child(
-    class => WINDOW_CLASS_INPUT_OUTPUT,
+    class => X11::XCB::WINDOW_CLASS_INPUT_OUTPUT(),
     rect => [0, 0, 200, 200],
     background_color => '#FF00FF',
   );
 
   $window->map;
+  print "Press Enter to continue\n";
+  <>;
 
 =head1 DESCRIPTION
 
