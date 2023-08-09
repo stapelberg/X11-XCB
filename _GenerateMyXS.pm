@@ -362,6 +362,8 @@ sub do_replies($\%\%) {
             my $pre           = xcb_name($req->{name});
 
             if ($list->{type} eq 'void') {
+                # TODO RandR structure randr_get_provider_property_reply is not supported
+                last if $perlname eq 'randr_get_provider_property_reply';
 
                 # A byte-array. Provide it as SV.
                 print OUT "    _len = reply->value_len * (reply->format / 8);\n";
@@ -412,7 +414,9 @@ sub do_replies($\%\%) {
 sub do_enums {
     my ($tag, $attr) = @_;
 
-    my $name = uc decamelize $attr->{name};
+    # XXX hack, to get eg. a xinerama_ prefix
+    (my $ns = $prefix) =~ s/^xcb_//;
+    my $name = uc $ns . decamelize $attr->{name};
 
     if ($tag eq 'enum') {
         on item => sub {
@@ -430,7 +434,7 @@ sub do_enums {
 
 sub generate {
     my $path = ExtUtils::PkgConfig->variable('xcb-proto', 'xcbincludedir');
-    my @xcb_xmls = qw/xproto.xml xinerama.xml/;
+    my @xcb_xmls = qw/xproto.xml xinerama.xml randr.xml/;
 
     -d $path or die "$path: $!\n";
 
@@ -496,6 +500,12 @@ __
         undef @struct;
 
         do_events($xcb);
+
+        # TODO RandR typemap of mode_info_t, transform_t, monitor_info_t not implemented
+        if (index $path, "randr") {
+            my $randr_exclude = join "|", qw( randr_create_mode randr_set_monitor randr_set_crtc_transform );
+            @request = grep ! /^HV \*\s+$randr_exclude\b/, @request;
+        }
 
         print OUT "MODULE = X11::XCB PACKAGE = X11::XCB\n";
         print OUT @request;
