@@ -3,6 +3,7 @@
 #include "XSUB.h"
 #include <xcb/xcb.h>
 #include <xcb/xinerama.h>
+#include <xcb/randr.h>
 
 #include "ppport.h"
 
