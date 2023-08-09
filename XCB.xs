@@ -123,6 +123,32 @@ _new_event_object(xcb_generic_event_t *event)
         }
         break;
 
+        case XCB_MAP_REQUEST:
+        {
+            objname = "X11::XCB::Event::MapRequest";
+            xcb_map_request_event_t *e = (xcb_map_request_event_t*)event;
+            hv_store(hash, "parent", strlen("parent"), newSViv(e->parent), 0);
+            hv_store(hash, "window", strlen("window"), newSViv(e->window), 0);
+        }
+        break;
+
+        case XCB_CONFIGURE_REQUEST:
+        {
+            objname = "X11::XCB::Event::ConfigureRequest";
+            xcb_configure_request_event_t *e = (xcb_configure_request_event_t*)event;
+            hv_store(hash, "parent", strlen("parent"), newSViv(e->parent), 0);
+            hv_store(hash, "stack_mode", strlen("stack_mode"), newSViv(e->stack_mode), 0);
+            hv_store(hash, "window", strlen("window"), newSViv(e->window), 0);
+            hv_store(hash, "sibling", strlen("sibling"), newSViv(e->sibling), 0);
+            hv_store(hash, "x", strlen("x"), newSViv(e->x), 0);
+            hv_store(hash, "y", strlen("x"), newSViv(e->y), 0);
+            hv_store(hash, "width", strlen("x"), newSViv(e->width), 0);
+            hv_store(hash, "height", strlen("x"), newSViv(e->height), 0);
+            hv_store(hash, "border_width", strlen("border_width"), newSViv(e->border_width), 0);
+            hv_store(hash, "value_mask", strlen("value_mask"), newSViv(e->value_mask), 0);
+        }
+        break;
+
         case XCB_FOCUS_IN:
         case XCB_FOCUS_OUT:
         {
