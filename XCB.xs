@@ -260,6 +260,42 @@ poll_for_event(self)
     RETVAL
 
 
+SV *
+get_setup(conn)
+    XCBConnection *conn
+  PREINIT:
+    HV * hash;
+    const xcb_setup_t * setup;
+  CODE:
+    hash = newHV();
+    setup = xcb_get_setup(conn);
+    if (setup) {
+        hv_store(hash, "status", strlen("status"), newSViv(setup->status), 0);
+        hv_store(hash, "protocol_major_version", strlen("protocol_major_version"), newSViv(setup->protocol_major_version), 0);
+        hv_store(hash, "protocol_minor_version", strlen("protocol_minor_version"), newSViv(setup->protocol_minor_version), 0);
+        hv_store(hash, "length", strlen("length"), newSViv(setup->length), 0);
+        hv_store(hash, "release_number", strlen("release_number"), newSViv(setup->release_number), 0);
+        hv_store(hash, "resource_id_base", strlen("resource_id_base"), newSViv(setup->resource_id_base), 0);
+        hv_store(hash, "resource_id_mask", strlen("resource_id_mask"), newSViv(setup->resource_id_mask), 0);
+        hv_store(hash, "motion_buffer_size", strlen("motion_buffer_size"), newSViv(setup->motion_buffer_size), 0);
+        hv_store(hash, "vendor_len", strlen("vendor_len"), newSViv(setup->vendor_len), 0);
+        hv_store(hash, "maximum_request_length", strlen("maximum_request_length"), newSViv(setup->maximum_request_length), 0);
+        hv_store(hash, "roots_len", strlen("roots_len"), newSViv(setup->roots_len), 0);
+        hv_store(hash, "pixmap_formats_len", strlen("pixmap_formats_len"), newSViv(setup->pixmap_formats_len), 0);
+        hv_store(hash, "image_byte_order", strlen("image_byte_order"), newSViv(setup->image_byte_order), 0);
+        hv_store(hash, "bitmap_format_bit_order", strlen("bitmap_format_bit_order"), newSViv(setup->bitmap_format_bit_order), 0);
+        hv_store(hash, "bitmap_format_scanline_unit", strlen("bitmap_format_scanline_unit"), newSViv(setup->bitmap_format_scanline_unit), 0);
+        hv_store(hash, "bitmap_format_scanline_pad", strlen("bitmap_format_scanline_pad"), newSViv(setup->bitmap_format_scanline_pad), 0);
+        hv_store(hash, "min_keycode", strlen("min_keycode"), newSViv(setup->min_keycode), 0);
+        hv_store(hash, "max_keycode", strlen("max_keycode"), newSViv(setup->max_keycode), 0);
+        RETVAL = sv_bless(newRV_noinc((SV*)hash), gv_stashpv("X11::XCB::Setup", 1));
+    } else {
+        RETVAL = &PL_sv_undef;
+    }
+  OUTPUT:
+    RETVAL
+
+
 int
 get_root_window(conn)
     XCBConnection *conn
