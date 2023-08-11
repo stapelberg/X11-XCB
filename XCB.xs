@@ -295,6 +295,53 @@ get_setup(conn)
   OUTPUT:
     RETVAL
 
+SV *
+get_keymap(conn)
+    XCBConnection *conn
+  PREINIT:
+    AV * row;
+    SSize_t idx;
+    const xcb_setup_t * setup;
+    int i;
+    int j;
+    int total_codes;
+    xcb_get_keyboard_mapping_reply_t * kmap;
+    xcb_keysym_t * keysym;
+  INIT:
+    AV * results = (AV *)sv_2mortal((SV *)newAV());
+    av_extend(results, 256);
+  CODE:
+    setup = xcb_get_setup(conn);
+    if (! setup || setup->max_keycode > 255 || setup->min_keycode >= setup->max_keycode)
+      croak("Failed calling xcb_get_setup()");
+
+    kmap = xcb_get_keyboard_mapping_reply(conn, xcb_get_keyboard_mapping(conn, setup->min_keycode, setup->max_keycode - setup->min_keycode + 1), 0);
+    total_codes = kmap->length / kmap->keysyms_per_keycode;
+    keysym = xcb_get_keyboard_mapping_keysyms(kmap);
+
+    if (! keysym)
+      croak("Failed getting X11 keyboard mapping");
+
+    for (int i = 0; i < total_codes; i++) {
+      idx = setup->min_keycode + i;
+      row = (AV *)sv_2mortal((SV *)newAV());
+      av_extend(row, kmap->keysyms_per_keycode);
+
+      for (int j = 0; j < kmap->keysyms_per_keycode; j++) {
+        if (! av_store(row, j, newSViv(keysym[j + i * kmap->keysyms_per_keycode]))) {
+          XSRETURN_UNDEF;
+        }
+      }
+
+      if (! av_store(results, idx, newRV_inc((SV *)row))) {
+        XSRETURN_UNDEF;
+      }
+    }
+
+    RETVAL = newRV_inc((SV *)results);
+  OUTPUT:
+    RETVAL
+
 
 int
 get_root_window(conn)
