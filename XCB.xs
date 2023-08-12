@@ -385,6 +385,52 @@ extension_present(conn, extension_name)
   OUTPUT:
     RETVAL
 
+# XXX There is no _checked sign in xproto.xml, so adding some functions manually
+
+HV *
+request_check(conn, sequence)
+    XCBConnection *conn
+    int sequence
+  PREINIT:
+    HV * hash;
+    xcb_generic_error_t *error;
+    xcb_void_cookie_t cookie;
+  CODE:
+    cookie.sequence = sequence;
+    error = xcb_request_check(conn, cookie);
+    if (! error)
+      XSRETURN_UNDEF;
+    hash = newHV();
+    hv_store(hash, "sequence", strlen("sequence"), newSViv(error->sequence), 0);
+    hv_store(hash, "response_type", strlen("response_type"), newSViv(error->response_type), 0);
+    hv_store(hash, "error_code", strlen("error_code"), newSViv(error->error_code), 0);
+    hv_store(hash, "resource_id", strlen("resource_id"), newSViv(error->resource_id), 0);
+    hv_store(hash, "minor_code", strlen("minor_code"), newSViv(error->minor_code), 0);
+    hv_store(hash, "major_code", strlen("major_code"), newSViv(error->major_code), 0);
+    hv_store(hash, "full_sequence", strlen("full_sequence"), newSViv(error->full_sequence), 0);
+    RETVAL = hash;
+  OUTPUT:
+    RETVAL
+
+HV *
+change_window_attributes_checked(conn, window, value_mask, value_list, ...)
+    XCBConnection *conn
+    uint32_t window
+    uint32_t value_mask
+    intArray * value_list
+  PREINIT:
+    HV * hash;
+    xcb_void_cookie_t cookie;
+  CODE:
+    cookie = xcb_change_window_attributes_checked(conn, window, value_mask, value_list);
+
+    hash = newHV();
+    hv_store(hash, "sequence", strlen("sequence"), newSViv(cookie.sequence), 0);
+    RETVAL = hash;
+    free(value_list);
+  OUTPUT:
+    RETVAL
+
 INCLUDE: XCB_util.inc
 
 INCLUDE: XCB_xs.inc
