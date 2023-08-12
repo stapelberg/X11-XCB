@@ -4,7 +4,7 @@ use 5.010000;
 use strict;
 use warnings;
 
-our $VERSION = '0.19';
+our $VERSION = '0.20';
 
 use Exporter 'import';
 
@@ -83,17 +83,32 @@ The git webinterface for the development of X11::XCB.
 
 The i3 window manager includes testcases which use X11::XCB.
 
+=item L<https://github.com/zhmylove/korgwm>
+
+The korgwm is written entirely in Perl and based on X11::XCB.
+
 =back
 
 =head1 AUTHOR
 
-Michael Stapelberg, E<lt>michael+xcb@stapelberg.deE<gt>
-Maik Fischer, E<lt>maikf+xcb@qu.cxE<gt>
+Michael Stapelberg, E<lt>michael+xcb@stapelberg.deE<gt>,
+Maik Fischer, E<lt>maikf+xcb@qu.cxE<gt>,
+Sergei Zhmylev, E<lt>zhmylove@cpan.orgE<gt>
+
+=head1 INSTALLATION
+
+To install this module type the following:
+
+    perl Makefile.PL
+    make
+    make test
+    make install
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2009-2011 Michael Stapelberg
-Copyright (C) 2011 Maik Fischer
+Copyright (C) 2009-2023 Michael Stapelberg,
+Copyright (C) 2011 Maik Fischer,
+Copyright (C) 2023 Sergei Zhmylev
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.10.0 or,
