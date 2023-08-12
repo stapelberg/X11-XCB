@@ -138,7 +138,7 @@ _new_event_object(xcb_generic_event_t *event)
             xcb_client_message_event_t *e = (xcb_client_message_event_t*)event;
             hv_store(hash, "window", strlen("window"), newSViv(e->window), 0);
             hv_store(hash, "type", strlen("type"), newSViv(e->type), 0);
-            hv_store(hash, "data", strlen("data"), newSVpvn(&(e->data), 20), 0);
+            hv_store(hash, "data", strlen("data"), newSVpvn((const char *)&(e->data), 20), 0);
         }
         break;
 
