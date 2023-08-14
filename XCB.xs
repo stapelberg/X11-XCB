@@ -113,6 +113,23 @@ _new_event_object(xcb_generic_event_t *event)
     type = (event->response_type & 0x7F);
 
     switch (type) {
+        case XCB_CREATE_NOTIFY:
+        {
+            objname = "X11::XCB::Event::CreateNotify";
+            xcb_create_notify_event_t *e = (xcb_create_notify_event_t*)event;
+            hv_store(hash, "response_type", strlen("response_type"), newSViv(e->response_type), 0);
+            hv_store(hash, "sequence", strlen("sequence"), newSViv(e->sequence), 0);
+            hv_store(hash, "parent", strlen("parent"), newSViv(e->parent), 0);
+            hv_store(hash, "window", strlen("window"), newSViv(e->window), 0);
+            hv_store(hash, "x", strlen("x"), newSViv(e->x), 0);
+            hv_store(hash, "y", strlen("y"), newSViv(e->y), 0);
+            hv_store(hash, "width", strlen("width"), newSViv(e->width), 0);
+            hv_store(hash, "height", strlen("height"), newSViv(e->height), 0);
+            hv_store(hash, "border_width", strlen("border_width"), newSViv(e->border_width), 0);
+            hv_store(hash, "override_redirect", strlen("override_redirect"), newSViv(e->override_redirect), 0);
+        }
+        break;
+
         case XCB_MAP_NOTIFY:
         {
             objname = "X11::XCB::Event::MapNotify";
@@ -132,6 +149,22 @@ _new_event_object(xcb_generic_event_t *event)
         }
         break;
 
+        case XCB_CONFIGURE_NOTIFY:
+        {
+            objname = "X11::XCB::Event::ConfigureNotify";
+            xcb_configure_notify_event_t *e = (xcb_configure_notify_event_t*)event;
+            hv_store(hash, "event", strlen("event"), newSViv(e->event), 0);
+            hv_store(hash, "window", strlen("window"), newSViv(e->window), 0);
+            hv_store(hash, "above_sibling", strlen("above_sibling"), newSViv(e->above_sibling), 0);
+            hv_store(hash, "x", strlen("x"), newSViv(e->x), 0);
+            hv_store(hash, "y", strlen("y"), newSViv(e->y), 0);
+            hv_store(hash, "width", strlen("width"), newSViv(e->width), 0);
+            hv_store(hash, "height", strlen("height"), newSViv(e->height), 0);
+            hv_store(hash, "border_width", strlen("border_width"), newSViv(e->border_width), 0);
+            hv_store(hash, "override_redirect", strlen("override_redirect"), newSViv(e->override_redirect), 0);
+        }
+        break;
+
         case XCB_CONFIGURE_REQUEST:
         {
             objname = "X11::XCB::Event::ConfigureRequest";
@@ -146,6 +179,25 @@ _new_event_object(xcb_generic_event_t *event)
             hv_store(hash, "height", strlen("x"), newSViv(e->height), 0);
             hv_store(hash, "border_width", strlen("border_width"), newSViv(e->border_width), 0);
             hv_store(hash, "value_mask", strlen("value_mask"), newSViv(e->value_mask), 0);
+        }
+        break;
+
+        case XCB_UNMAP_NOTIFY:
+        {
+            objname = "X11::XCB::Event::UnmapNotify";
+            xcb_unmap_notify_event_t *e = (xcb_unmap_notify_event_t*)event;
+            hv_store(hash, "event", strlen("event"), newSViv(e->event), 0);
+            hv_store(hash, "window", strlen("window"), newSViv(e->window), 0);
+            hv_store(hash, "from_configure", strlen("from_configure"), newSViv(e->from_configure), 0);
+        }
+        break;
+
+        case XCB_DESTROY_NOTIFY:
+        {
+            objname = "X11::XCB::Event::DestroyNotify";
+            xcb_destroy_notify_event_t *e = (xcb_destroy_notify_event_t*)event;
+            hv_store(hash, "event", strlen("event"), newSViv(e->event), 0);
+            hv_store(hash, "window", strlen("window"), newSViv(e->window), 0);
         }
         break;
 
