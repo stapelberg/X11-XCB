@@ -257,6 +257,26 @@ _new_event_object(xcb_generic_event_t *event)
         }
         break;
 
+        case XCB_ENTER_NOTIFY:
+        case XCB_LEAVE_NOTIFY:
+        {
+            objname = "X11::XCB::Event::EnterLeaveNotify";
+            xcb_enter_notify_event_t *e = (xcb_enter_notify_event_t*)event;
+            hv_store(hash, "detail", strlen("detail"), newSViv(e->detail), 0);
+            hv_store(hash, "time", strlen("time"), newSViv(e->time), 0);
+            hv_store(hash, "root", strlen("root"), newSViv(e->root), 0);
+            hv_store(hash, "event", strlen("event"), newSViv(e->event), 0);
+            hv_store(hash, "child", strlen("child"), newSViv(e->child), 0);
+            hv_store(hash, "root_x", strlen("root_x"), newSViv(e->root_x), 0);
+            hv_store(hash, "root_y", strlen("root_y"), newSViv(e->root_y), 0);
+            hv_store(hash, "event_x", strlen("event_x"), newSViv(e->event_x), 0);
+            hv_store(hash, "event_y", strlen("event_y"), newSViv(e->event_y), 0);
+            hv_store(hash, "state", strlen("state"), newSViv(e->state), 0);
+            hv_store(hash, "mode", strlen("mode"), newSViv(e->mode), 0);
+            hv_store(hash, "same_screen_focus", strlen("same_screen_focus"), newSViv(e->same_screen_focus), 0);
+        }
+        break;
+
         default:
             objname = "X11::XCB::Event::Generic";
             break;

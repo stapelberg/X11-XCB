@@ -470,6 +470,9 @@ __
     $const{_NET_WM_STATE_REMOVE} = 'newSViv(0)';
     $const{_NET_WM_STATE_TOGGLE} = 'newSViv(2)';
 
+    # Add LEAVE_NOTIFY manually, as it's missing in xml
+    $const{LEAVE_NOTIFY} = 'newSViv(XCB_LEAVE_NOTIFY)';
+
     # ICCCM constants from xcb-util
     for my $const (qw(XCB_ICCCM_WM_STATE_WITHDRAWN XCB_ICCCM_WM_STATE_NORMAL XCB_ICCCM_WM_STATE_ICONIC)) {
         my ($name) = ($const =~ /XCB_(.*)/);
