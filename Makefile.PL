@@ -68,7 +68,7 @@ require ExtUtils::Depends;
 ExtUtils::PkgConfig->atleast_version('xcb', '1.2')
   or die "You need at least libxcb version 1.2\n";
 
-my @xcb_libs = qw/xcb xcb-util xcb-xinerama xcb-icccm xcb-randr /;
+my @xcb_libs = qw/xcb xcb-util xcb-xinerama xcb-icccm xcb-randr xcb-xkb/;
 @xcb_libs == grep { eval { ExtUtils::PkgConfig->find($_); 1 } } @xcb_libs
   or die "Perhaps you haven't installed the development versions?\n";
 

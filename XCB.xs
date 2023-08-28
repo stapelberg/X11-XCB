@@ -4,6 +4,7 @@
 #include <xcb/xcb.h>
 #include <xcb/xinerama.h>
 #include <xcb/randr.h>
+#include <xcb/xkb.h>
 
 #include "ppport.h"
 
@@ -106,6 +107,8 @@ _new_event_object(xcb_generic_event_t *event)
     char *objname;
     HV* hash = newHV();
 
+    // Some events, for instance from XKB, passing essential data only via pad0 field
+    hv_store(hash, "pad0", strlen("pad0"), newSViv(event->pad0), 0);
     hv_store(hash, "response_type", strlen("response_type"), newSViv(event->response_type), 0);
     hv_store(hash, "sequence", strlen("sequence"), newSViv(event->sequence), 0);
 
