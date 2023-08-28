@@ -186,6 +186,11 @@ sub do_structs {
 
     walk;
 
+    # TODO: unimplemented
+    return if
+        $perlname eq 'XCBXkb_set_behavior' or
+        $perlname eq 'XCBXkb_sym_interpret';
+
     tmpl_struct($perlname, \@fields, \%type);
 
     if ($dogetter) {
@@ -277,11 +282,11 @@ sub do_requests {
 
     on switch => sub {
         my ($elem, $attr, $ctx) = @_;
-        my $mask = 'value_mask';
+        my $mask = $parser->xml =~ m,<fieldref>(.*?)</fieldref>,m ? $1 : 'value_mask';
         my $list = $attr->{'name'};
         push @param, $mask
         # eg. ConfigureWindow already specifies the mask via <field />
-            unless ($param[-1] || '') eq $mask;
+            unless first { $_ eq $mask } @param;
 
         push @param, $list;
         push @param, '...';
@@ -380,7 +385,7 @@ sub do_replies($\%\%) {
             print OUT "    {\n";
             print OUT "    /* Handling list part of the reply */\n";
             print OUT "    alist = newAV();\n";
-            print OUT "    $iterator iterator = $pre" . '_' . $listname . "_iterator(reply);\n";
+            print OUT "    $iterator iterator = $pre" . '_' . decamelize($listname) . "_iterator(reply);\n";
             print OUT "    for (; iterator.rem > 0; $iterator_next(&iterator)) {\n";
             print OUT "      $type *data = iterator.data;\n";
             print OUT "      inner_hash = newHV();\n";
@@ -434,7 +439,7 @@ sub do_enums {
 
 sub generate {
     my $path = ExtUtils::PkgConfig->variable('xcb-proto', 'xcbincludedir');
-    my @xcb_xmls = qw/xproto.xml xinerama.xml randr.xml/;
+    my @xcb_xmls = qw/xproto.xml xinerama.xml randr.xml xkb.xml/;
 
     -d $path or die "$path: $!\n";
 
@@ -508,6 +513,12 @@ __
         if (index $path, "randr") {
             my $randr_exclude = join "|", qw( randr_create_mode randr_set_monitor randr_set_crtc_transform );
             @request = grep ! /^HV \*\s+$randr_exclude\b/, @request;
+        }
+
+        # TODO xkb typemap of XCBXkb_action not implemented
+        if (index $path, "xkb") {
+            my $xkb_exclude = join "|", qw( xkb_set_device_info );
+            @request = grep ! /^HV \*\s+$xkb_exclude\b/, @request;
         }
 
         print OUT "MODULE = X11::XCB PACKAGE = X11::XCB\n";
