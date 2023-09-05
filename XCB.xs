@@ -204,6 +204,17 @@ _new_event_object(xcb_generic_event_t *event)
         }
         break;
 
+        case XCB_PROPERTY_NOTIFY:
+        {
+            objname = "X11::XCB::Event::PropertyNotify";
+            xcb_property_notify_event_t *e = (xcb_property_notify_event_t*)event;
+            hv_store(hash, "window", strlen("window"), newSViv(e->window), 0);
+            hv_store(hash, "atom", strlen("atom"), newSViv(e->atom), 0);
+            hv_store(hash, "time", strlen("time"), newSViv(e->time), 0);
+            hv_store(hash, "state", strlen("state"), newSViv(e->state), 0);
+        }
+        break;
+
         case XCB_FOCUS_IN:
         case XCB_FOCUS_OUT:
         {

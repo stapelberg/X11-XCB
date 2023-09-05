@@ -3,7 +3,7 @@ package X11::XCB::Event::MapRequest;
 use Mouse;
 
 # XXX: the following are filled in by XS
-has [ 'response_type', 'sequence', 'window', 'parent' ] => (is => 'ro', isa => 'Int');
+has [ 'response_type', 'sequence', 'pad0', 'window', 'parent' ] => (is => 'ro', isa => 'Int');
 
 __PACKAGE__->meta->make_immutable;
 
