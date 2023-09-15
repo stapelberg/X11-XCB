@@ -508,6 +508,34 @@ get_keymap(conn)
   OUTPUT:
     RETVAL
 
+SV *
+get_query_tree_children(conn, window)
+    XCBConnection *conn
+    uint32_t window
+  PREINIT:
+    xcb_query_tree_cookie_t cookie;
+    xcb_query_tree_reply_t *reply;
+    xcb_window_t *children;
+    int children_len;
+  INIT:
+    AV * results = (AV *)sv_2mortal((SV *)newAV());
+  CODE:
+    cookie = xcb_query_tree(conn, window);
+    reply = xcb_query_tree_reply(conn, cookie, NULL);
+    if (! reply)
+      croak("Failed calling xcb_query_tree()");
+    if (! (children_len = xcb_query_tree_children_length(reply)))
+      XSRETURN_UNDEF;
+    av_extend(results, children_len);
+    children = xcb_query_tree_children(reply);
+    for (int i = 0; i < children_len; i++) {
+      if (! av_store(results, i, newSViv(children[i]))) {
+        XSRETURN_UNDEF;
+      }
+    }
+    RETVAL = newRV_inc((SV *)results);
+  OUTPUT:
+    RETVAL
 
 int
 get_root_window(conn)
@@ -516,7 +544,6 @@ get_root_window(conn)
     RETVAL = xcb_setup_roots_iterator(xcb_get_setup(conn)).data->root;
   OUTPUT:
     RETVAL
-
 
 int
 generate_id(conn)

@@ -139,6 +139,12 @@ Returns intrinsically created array with X11 Keymap:
     ...
   ]
 
+=head2 get_query_tree_children
+
+Returns intrinsically created array with children windows identifiers for specified window:
+
+  [ id1, id2, id3 ]
+
 =cut
 
 1
